@@ -1,5 +1,5 @@
 ﻿{
-  "version": "0.0.1-*",
+  "version": "0.0.1-beta-*",
   "title": "AWS Cloud Watch Serilog Sink",
   "description": "A Serilog sink that logs to AWS CloudWatch",
   "authors": [ "Markus Thurner" ],
