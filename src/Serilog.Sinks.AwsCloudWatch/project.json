@@ -10,8 +10,7 @@
   "iconUrl": "http://serilog.net/images/serilog-sink-nuget.png",
 
   "dependencies": {
-    "AWSSDK.CloudWatchLogs": "3.2.3-beta",
-    "Newtonsoft.Json": "8.0.3"
+    "AWSSDK.CloudWatchLogs": "3.2.3-beta"
   },
 
   "frameworks": {
