@@ -25,9 +25,19 @@ function Get-DnxVersion
     return $jsonData.sdk.version
 }
 
+function Set-BuildVersion
+{
+    param([string] $DirectoryName)
+    $projectJson = Join-Path $DirectoryName "project.json"
+    $jsonData = Get-Content -Path $projectJson -Raw | ConvertFrom-JSON
+    $jsonData.version = $env:Version
+    $jsonData | ConvertTo-Json -Depth 999 | Out-File $projectJson
+}
+
 function Restore-Packages
 {
     param([string] $DirectoryName)
+    Set-BuildVersion $DirectoryName; if($LASTEXITCODE -ne 0) { exit 1 }
     & dnu restore ("""" + $DirectoryName + """") --quiet
 }
 
@@ -80,12 +90,14 @@ dnvm install $dnxVersion -r CoreCLR -NoNative
 dnvm install $dnxVersion -r CLR -NoNative
 dnvm use $dnxVersion -r CoreCLR
 
-# Package restore
-Get-ChildItem -Path . -Filter *.xproj -Recurse | ForEach-Object { Restore-Packages $_.DirectoryName }
-
 # Set build number
 $env:DNX_BUILD_VERSION = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
 Write-Host "Build number: " $env:DNX_BUILD_VERSION
+$env:VERSION = @{ $true = $env:APPVEYOR_BUILD_VERSION; $false = "0.1." + $env:DNX_BUILD_VERSION }[$env:APPVEYOR_BUILD_VERSION -ne $NULL];
+Write-Host "Version: " $env:VERSION
+
+# Package restore
+Get-ChildItem -Path . -Filter *.xproj -Recurse | ForEach-Object { Restore-Packages $_.DirectoryName }
 
 # Build/package
 Get-ChildItem -Path .\src -Filter *.xproj -Recurse | ForEach-Object { Build-Projects $_.DirectoryName }
