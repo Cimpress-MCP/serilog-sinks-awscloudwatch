@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
 using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
-using Newtonsoft.Json;
 using Serilog.Events;
 using Serilog.Sinks.PeriodicBatching;
 using System.Linq;
@@ -17,17 +16,29 @@ namespace Serilog.Sinks.AwsCloudWatch
         private readonly IAmazonCloudWatchLogs cloudWatchClient;
         private readonly CloudWatchSinkOptions options;
         private bool hasInit;
-        private readonly string logStreamName;
+        private string logStreamName;
         private string nextSequenceToken;
+        private readonly ILogEventRenderer renderer;
 
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options) : base(options.BatchSizeLimit, options.Period)
         {
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
-            hasInit = false;
+            renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
 
+            UpdateLogStreamName();
+        }
+
+        /// <summary>
+        /// Creates a new log stream name, based on current time and a unique identifier.
+        /// Is uses a sortable, but simplified date format that conforms with naming requirements of the log stream naming,
+        /// but allows to the log stream to be sorted and easily identified.
+        /// </summary>
+        private void UpdateLogStreamName()
+        {
             var prefix = DateTime.UtcNow.ToString("yyyy-MM-dd-hh-mm-ss");
             logStreamName = $"{prefix}_{Dns.GetHostName()}_{Guid.NewGuid()}";
+            hasInit = false;
         }
 
         private async Task EnsureInitialized()
@@ -85,29 +96,36 @@ namespace Serilog.Sinks.AwsCloudWatch
             
             try
             {
-                var logEvents = events.OrderBy(e => e.Timestamp).Select(e =>
-                {
-                    var writer = new StringWriter();
-                    e.RenderMessage(writer);
-                    var message = new {e.MessageTemplate, e.Properties, RenderedMessage = writer.ToString(), e.Level, e.Exception};
-                    return new InputLogEvent {Message = JsonConvert.SerializeObject(message), Timestamp = e.Timestamp.UtcDateTime};
-                }).ToList();
+                // log events need to be ordered by timestamp within a single bulk upload to CloudWatch
+                var logEvents =
+                    events.OrderBy(e => e.Timestamp)
+                        .Select(e => new InputLogEvent {Message = renderer.RenderLogEvent(e), Timestamp = e.Timestamp.UtcDateTime})
+                        .ToList();
+
+                // creates the request to upload a new event to CloudWatch
                 PutLogEventsRequest putEventsRequest = new PutLogEventsRequest(options.LogGroupName, logStreamName, logEvents)
                 {
                     SequenceToken = nextSequenceToken
                 };
+
+                // actually upload the event to CloudWatch
                 var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putEventsRequest);
+
+                // validate success
                 if (!putLogEventsResponse.HttpStatusCode.IsSuccessStatusCode())
                 {
+                    // let's start a new log stream in case anything went wrong with the upload
+                    UpdateLogStreamName();
                     throw new Exception(
                         $"Tried to send logs, but failed with status code '{putLogEventsResponse.HttpStatusCode}' and data '{putLogEventsResponse.ResponseMetadata.FlattenedMetaData()}'.");
                 }
+
+                // remember the next sequence token, which is required
                 nextSequenceToken = putLogEventsResponse.NextSequenceToken;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error sending logs. No logs will be sent to AWS CloudWatch.");
-                Console.WriteLine(ex);
+                Trace.TraceError("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
             }
         }
 
