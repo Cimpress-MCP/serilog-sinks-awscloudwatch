@@ -1,4 +1,5 @@
 using System;
+using Serilog.Events;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -7,6 +8,12 @@ namespace Serilog.Sinks.AwsCloudWatch
     /// </summary>
     public class CloudWatchSinkOptions
     {
+        /// <summary>
+        /// The minimum log event level required in order to write an event to the sink. Defaults
+        /// to <see cref="LogEventLevel.Information"/>. 
+        /// </summary>
+        public LogEventLevel MinimumLogEventLevel { get; set; } = LogEventLevel.Information;
+
         /// <summary>
         /// The batch size to be used when uploading logs to cloud watch. Defaults to 100.
         /// </summary>
