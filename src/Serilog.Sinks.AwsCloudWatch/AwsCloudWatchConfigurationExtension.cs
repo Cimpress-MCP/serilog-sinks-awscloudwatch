@@ -27,7 +27,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             ILogEventSink sink = new CloudWatchLogSink(cloudWatchClient, options);
             
             // register the sink
-            return loggerConfiguration.Sink(sink);
+            return loggerConfiguration.Sink(sink, options.MinimumLogEventLevel);
         }
     }
 }
