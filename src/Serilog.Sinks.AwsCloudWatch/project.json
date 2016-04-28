@@ -1,44 +1,62 @@
-﻿{
-  "version": "0.0.0",
-  "title": "AWS Cloud Watch Serilog Sink",
-  "description": "A Serilog sink that logs to AWS CloudWatch",
-  "authors": [ "Markus Thurner" ],
-  "tags": [ "serilog", "logging", "dnx", "coreclr", "AWS", "CloudWatch" ],
-  "owners": [ "Cimpress" ],
-  "projectUrl": "https://github.com/Cimpress-MCP/serilog-sinks-awscloudwatch",
-  "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
-  "iconUrl": "http://serilog.net/images/serilog-sink-nuget.png",
-
-  "dependencies": {
-    "AWSSDK.CloudWatchLogs": "3.2.3-beta"
-  },
-
-  "frameworks": {
-    "net46": {
-      "dependencies": {
-        "Serilog": "1.5.11"
-      },
-      "frameworkAssemblies": {
-        "System.Runtime": "4.0.20.0",
-        "System.IO": "4.0.0.0"
-      }
+{
+    "version": "0.0.0",
+    "title": "AWS Cloud Watch Serilog Sink",
+    "description": "A Serilog sink that logs to AWS CloudWatch",
+    "authors": [
+        "Markus Thurner"
+    ],
+    "tags": [
+        "serilog",
+        "logging",
+        "dnx",
+        "coreclr",
+        "AWS",
+        "CloudWatch"
+    ],
+    "owners": [
+        "Cimpress"
+    ],
+    "projectUrl": "https://github.com/Cimpress-MCP/serilog-sinks-awscloudwatch",
+    "licenseUrl": "http://www.apache.org/licenses/LICENSE-2.0",
+    "iconUrl": "http://serilog.net/images/serilog-sink-nuget.png",
+    "dependencies": {
+        "AWSSDK.CloudWatchLogs": "3.2.3-beta"
     },
-    "net50": {
-      "dependencies": {
-        "System.Net.Primitives": "4.0.10",
-        "Serilog.Framework.Logging": "1.0.0-rc1-final-10083"
-      }
-    },
-    "dnxcore50": {
-      "dependencies": {
-        "Microsoft.CSharp": "4.0.1-beta-23516",
-        "System.Collections": "4.0.11-beta-23516",
-        "System.Linq": "4.0.1-beta-23516",
-        "System.Net.Primitives": "4.0.10",
-        "System.Threading": "4.0.11-beta-23516",
-        "Serilog.Framework.Logging": "1.0.0-rc1-final-10083",
-        "System.Net.NameResolution": "4.0.0-beta-23516"
-      }
+    "frameworks": {
+        "net46": {
+            "dependencies": {
+                "Serilog": "1.5.14"
+            },
+            "frameworkAssemblies": {
+                "System.Runtime": "4.0.20.0",
+                "System.IO": "4.0.0.0"
+            }
+        },
+        "net50": {
+            "dependencies": {
+                "System.Net.Primitives": "4.0.10",
+                "Serilog.Framework.Logging": "1.0.0-rc1-final-10083"
+            }
+        },
+        "dnx451": {
+            "dependencies": {
+                "Serilog": "1.5.14"
+            },
+            "frameworkAssemblies": {
+                "System.Runtime": "",
+                "System.IO": ""
+            }
+        },
+        "dnxcore50": {
+            "dependencies": {
+                "Microsoft.CSharp": "4.0.1-beta-23516",
+                "System.Collections": "4.0.11-beta-23516",
+                "System.Linq": "4.0.1-beta-23516",
+                "System.Net.Primitives": "4.0.10",
+                "System.Threading": "4.0.11-beta-23516",
+                "Serilog.Framework.Logging": "1.0.0-rc1-final-10083",
+                "System.Net.NameResolution": "4.0.0-beta-23516"
+            }
+        }
     }
-  }
 }
