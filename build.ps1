@@ -4,7 +4,7 @@ function Build-Projects
 
     Push-Location $DirectoryName
     $revision = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
-    & dotnet pack -c Release -o ..\..\.\artifacts --version-suffix=$revision
+    & dotnet pack -c Release -o ..\..\.\artifacts --version-suffix $revision
     if($LASTEXITCODE -ne 0) { exit 1 }    
     Pop-Location
 }
