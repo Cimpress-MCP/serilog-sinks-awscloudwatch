@@ -1,4 +1,4 @@
-version: 2.0.{build}
+version: {build}
 skip_tags: true
 image: Visual Studio 2015
 configuration: Release
