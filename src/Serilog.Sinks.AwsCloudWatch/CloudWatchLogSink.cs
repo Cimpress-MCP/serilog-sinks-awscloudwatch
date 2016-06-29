@@ -8,6 +8,7 @@ using Amazon.CloudWatchLogs.Model;
 using Serilog.Events;
 using Serilog.Sinks.PeriodicBatching;
 using System.Linq;
+using Serilog.Core;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -19,6 +20,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private string logStreamName;
         private string nextSequenceToken;
         private readonly ILogEventRenderer renderer;
+        private readonly Logger traceLogger;
 
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options) : base(options.BatchSizeLimit, options.Period)
         {
@@ -27,6 +29,8 @@ namespace Serilog.Sinks.AwsCloudWatch
             renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
 
             UpdateLogStreamName();
+
+            traceLogger = new LoggerConfiguration().WriteTo.Trace().CreateLogger();
         }
 
         /// <summary>
@@ -125,7 +129,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
+                traceLogger.Error("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
             }
         }
 
