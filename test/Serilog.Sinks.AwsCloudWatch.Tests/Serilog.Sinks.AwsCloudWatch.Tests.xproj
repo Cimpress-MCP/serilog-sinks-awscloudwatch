@@ -6,10 +6,10 @@
   </PropertyGroup>
   <Import Project="$(VSToolsPath)\DotNet\Microsoft.DotNet.Props" Condition="'$(VSToolsPath)' != ''" />
   <PropertyGroup Label="Globals">
-    <ProjectGuid>a2796076-816b-4a87-837d-0f269bb6a898</ProjectGuid>
-    <RootNamespace>Serilog.Sinks.AwsCloudWatch</RootNamespace>
+    <ProjectGuid>e3ca22f4-1e03-44c5-bab5-b51c4aaa9490</ProjectGuid>
+    <RootNamespace>Serilog.Sinks.AwsCloudWatch.Tests</RootNamespace>
     <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)'=='' ">.\obj</BaseIntermediateOutputPath>
-    <OutputPath Condition="'$(OutputPath)'=='' ">.\bin</OutputPath>
+    <OutputPath Condition="'$(OutputPath)'=='' ">.\bin\</OutputPath>
   </PropertyGroup>
   <PropertyGroup>
     <SchemaVersion>2.0</SchemaVersion>
