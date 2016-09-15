@@ -1,15 +1,25 @@
-function Build-Projects
+function Pack-Project
 {
-    param([string] $DirectoryName)
+    param([string] $DirectoryName, [string]$revision)
 
     Push-Location $DirectoryName
-    $revision = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
     & dotnet pack -c Release -o ..\..\.\artifacts --version-suffix $revision
     if($LASTEXITCODE -ne 0) { exit 1 }    
     Pop-Location
 }
 
-function Test-Projects
+function Set-BuildVersion
+{
+    param([string] $DirectoryName, [string]$revision)
+	
+    $projectJson = Join-Path $DirectoryName "project.json"
+    $jsonData = Get-Content -Path $projectJson -Raw | ConvertFrom-JSON
+	$jsonData.version = $revision
+    $jsonData | ConvertTo-Json -Depth 999 | Out-File $projectJson
+    Write-Host "Set version of $projectJson to $revision"
+}
+
+function Test-Project
 {
     param([string] $DirectoryName)
 
@@ -19,18 +29,23 @@ function Test-Projects
     Pop-Location
 }
 
+$revision = @{ $true = $env:APPVEYOR_BUILD_VERSION; $false = "0.0.1" }[$env:APPVEYOR_BUILD_VERSION -ne $NULL];
+
 Push-Location $PSScriptRoot
 
 # Clean
 if(Test-Path .\artifacts) { Remove-Item .\artifacts -Force -Recurse }
 
+# Modify project.json
+Get-ChildItem -Path .\src -Filter *.xproj -Recurse | ForEach-Object { Set-BuildVersion $_.DirectoryName $revision }
+
 # Package restore
 & dotnet restore
 
 # Build/package
-Get-ChildItem -Path .\src -Filter *.xproj -Recurse | ForEach-Object { Build-Projects $_.DirectoryName }
+Get-ChildItem -Path .\src -Filter *.xproj -Recurse | ForEach-Object { Pack-Project $_.DirectoryName $revision }
 
 # Test
-Get-ChildItem -Path .\test -Filter *.xproj -Recurse | ForEach-Object { Test-Projects $_.DirectoryName }
+Get-ChildItem -Path .\test -Filter *.xproj -Recurse | ForEach-Object { Test-Project $_.DirectoryName }
 
 Pop-Location

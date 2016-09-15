@@ -129,7 +129,14 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
             catch (Exception ex)
             {
-                traceLogger.Error("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
+                try
+                {
+                    traceLogger.Error("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
+                }
+                catch (Exception)
+                {
+                    // we event failed to log to the trace logger - giving up trying to put something out
+                }
             }
         }
 
