@@ -1,10 +1,12 @@
+$ErrorActionPreference = "Stop"
+
 function Pack-Project
 {
     param([string] $DirectoryName, [string]$revision)
 
     Push-Location $DirectoryName
     & dotnet pack -c Release -o ..\..\.\artifacts --version-suffix $revision
-    if($LASTEXITCODE -ne 0) { exit 1 }    
+    if($LASTEXITCODE -ne 0) { exit 1 }
     Pop-Location
 }
 
@@ -41,6 +43,7 @@ Get-ChildItem -Path .\src -Filter *.xproj -Recurse | ForEach-Object { Set-BuildV
 
 # Package restore
 & dotnet restore
+if($LASTEXITCODE -ne 0) { exit 1 }
 
 # Build/package
 Get-ChildItem -Path .\src -Filter *.xproj -Recurse | ForEach-Object { Pack-Project $_.DirectoryName $revision }
