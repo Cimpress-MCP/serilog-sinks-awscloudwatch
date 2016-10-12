@@ -4,9 +4,11 @@
     "dependencies": {
         "Serilog.Sinks.AwsCloudWatch": { "target": "project" },
         "xunit": "2.2.0-beta2-build3300",
-        "dotnet-test-xunit": "1.0.0-rc2-build10025"
+        "dotnet-test-xunit": "2.2.0-preview2-build1029"
     },
     "frameworks": {
+        "net451": {},
+        "net46": {},
         "netcoreapp1.5": {
             "imports": [
                 "dotnet5.6",
