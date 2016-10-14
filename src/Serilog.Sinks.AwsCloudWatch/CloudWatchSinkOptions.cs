@@ -34,6 +34,17 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// which just flattens the log event to a simple string, losing all formatted data.
         /// It's recommended to implement a custom formatter like a simple JSON formatter with various parameters included.
         /// </summary>
+        [Obsolete("Use TextFormatter instead.")]
         public ILogEventRenderer LogEventRenderer { get; set; }
+
+        /// <summary>
+        /// A Serilog text formatter. Use instead of the LogEventRenderer.
+        /// </summary>
+        public Serilog.Formatting.ITextFormatter TextFormatter { get; set; }
+
+        /// <summary>
+        /// Supplies culture-specific formatting information.
+        /// </summary>
+        public IFormatProvider FormatProvider { get; set; }
     }
 }

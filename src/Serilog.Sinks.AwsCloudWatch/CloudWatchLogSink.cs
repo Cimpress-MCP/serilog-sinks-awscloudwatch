@@ -9,24 +9,31 @@ using Serilog.Events;
 using Serilog.Sinks.PeriodicBatching;
 using System.Linq;
 using Serilog.Core;
+using Serilog.Formatting.Display;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
     internal class CloudWatchLogSink : PeriodicBatchingSink
     {
+        const string DefaultOutputTemplate = "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level}] {Message}{NewLine}{Exception}";
+
         private readonly IAmazonCloudWatchLogs cloudWatchClient;
         private readonly CloudWatchSinkOptions options;
         private bool hasInit;
         private string logStreamName;
         private string nextSequenceToken;
+        [Obsolete("Use textFormatter instead.")]
         private readonly ILogEventRenderer renderer;
+        private readonly Serilog.Formatting.ITextFormatter textFormatter;
         private readonly Logger traceLogger;
 
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options) : base(options.BatchSizeLimit, options.Period)
         {
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
-            renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
+
+            if (options.LogEventRenderer != null) renderer = options.LogEventRenderer;
+            textFormatter = options.TextFormatter ?? new MessageTemplateTextFormatter(DefaultOutputTemplate, options.FormatProvider);
 
             UpdateLogStreamName();
 
@@ -103,7 +110,27 @@ namespace Serilog.Sinks.AwsCloudWatch
                 // log events need to be ordered by timestamp within a single bulk upload to CloudWatch
                 var logEvents =
                     events.OrderBy(e => e.Timestamp)
-                        .Select(e => new InputLogEvent {Message = renderer.RenderLogEvent(e), Timestamp = e.Timestamp.UtcDateTime})
+                        .Select(e =>
+                        {
+                            // use the textFormatter to build formatted output
+                            string message = "";
+
+                            if (renderer != null)
+                            {
+                                message = renderer.RenderLogEvent(e);
+                            }
+                            else
+                            {
+                                using (var writer = new System.IO.StringWriter())
+                                {
+                                    textFormatter.Format(e, writer);
+                                    writer.Flush();
+                                    message = writer.ToString();
+                                }
+                            }
+
+                            return new InputLogEvent {Message = message, Timestamp = e.Timestamp.UtcDateTime};
+                        })
                         .ToList();
 
                 // creates the request to upload a new event to CloudWatch
