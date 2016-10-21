@@ -1,6 +1,6 @@
 # Serilog Sink for AWS CloudWatch
 
-This Serilog Sink allows to log to [AWS CloudWatch](https://aws.amazon.com/cloudwatch/). It supports .NET Framework 4.6, DNX451 and .NET Core.
+This Serilog Sink allows to log to [AWS CloudWatch](https://aws.amazon.com/cloudwatch/). It supports .NET Framework 4.6 and .NET Core.
 
 ## Version and build status
 
@@ -28,6 +28,16 @@ IAmazonCloudWatchLogs client = new AmazonCloudWatchLogsClient(credentials, myAws
 Log.Logger = new LoggerConfiguration().MinimumLevel.Information()
   .WriteTo.AmazonCloudWatch(options, client)
   .CreateLogger();
+```
+
+## Troubleshooting
+
+Errors related to the setup of the Sink (for example, invalid AWS credentials), or problems during sending the data are logged to [Serilog's SelfLog](https://github.com/serilog/serilog/wiki/Debugging-and-Diagnostics).
+
+Short version, enable it with something like the following command:
+
+```cs
+Serilog.Debugging.SelfLog.Enable(Console.Error);
 ```
 
 ## Contribution
