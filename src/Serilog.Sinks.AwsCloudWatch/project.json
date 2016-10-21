@@ -23,10 +23,9 @@
 		"iconUrl": "http://serilog.net/images/serilog-sink-nuget.png"
 	},
     "dependencies": {
-        "AWSSDK.CloudWatchLogs": "3.3.0",
+        "AWSSDK.CloudWatchLogs": "3.3.0.1",
         "Serilog": "2.0.0",
-        "Serilog.Sinks.PeriodicBatching": "2.0.0",
-        "Serilog.Sinks.Trace": "2.0.0"
+        "Serilog.Sinks.PeriodicBatching": "2.0.0"
     },
     "frameworks": {
         "net451": {},
