@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
 using Amazon.CloudWatchLogs;
@@ -8,7 +7,6 @@ using Amazon.CloudWatchLogs.Model;
 using Serilog.Events;
 using Serilog.Sinks.PeriodicBatching;
 using System.Linq;
-using Serilog.Core;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -20,8 +18,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private string logStreamName;
         private string nextSequenceToken;
         private readonly ILogEventRenderer renderer;
-        private readonly Logger traceLogger;
-
+        
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options) : base(options.BatchSizeLimit, options.Period)
         {
             this.cloudWatchClient = cloudWatchClient;
@@ -29,8 +26,6 @@ namespace Serilog.Sinks.AwsCloudWatch
             renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
 
             UpdateLogStreamName();
-
-            traceLogger = new LoggerConfiguration().WriteTo.Trace().CreateLogger();
         }
 
         /// <summary>
@@ -93,8 +88,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error initializing log stream. No logs will be sent to AWS CloudWatch.");
-                Console.WriteLine(ex);
+                Debugging.SelfLog.WriteLine("Error initializing log stream. No logs will be sent to AWS CloudWatch. Exception was {0}.", ex);
                 return;
             }
             
@@ -131,7 +125,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             {
                 try
                 {
-                    traceLogger.Error("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
+                    Debugging.SelfLog.WriteLine("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
                 }
                 catch (Exception)
                 {
