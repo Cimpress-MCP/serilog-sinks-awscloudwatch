@@ -37,6 +37,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         {
             var prefix = DateTime.UtcNow.ToString("yyyy-MM-dd-hh-mm-ss");
             logStreamName = $"{prefix}_{Dns.GetHostName()}_{Guid.NewGuid()}";
+            nextSequenceToken = null;
             hasInit = false;
         }
 
@@ -112,8 +113,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                 // validate success
                 if (!putLogEventsResponse.HttpStatusCode.IsSuccessStatusCode())
                 {
-                    // let's start a new log stream in case anything went wrong with the upload
-                    UpdateLogStreamName();
                     throw new Exception(
                         $"Tried to send logs, but failed with status code '{putLogEventsResponse.HttpStatusCode}' and data '{putLogEventsResponse.ResponseMetadata.FlattenedMetaData()}'.");
                 }
@@ -123,6 +122,8 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
             catch (Exception ex)
             {
+                // let's start a new log stream in case anything went wrong with the upload
+                UpdateLogStreamName();
                 try
                 {
                     Debugging.SelfLog.WriteLine("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
