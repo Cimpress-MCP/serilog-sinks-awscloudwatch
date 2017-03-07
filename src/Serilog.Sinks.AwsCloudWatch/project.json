@@ -24,8 +24,8 @@
 	},
     "dependencies": {
         "AWSSDK.CloudWatchLogs": "3.3.2.2",
-        "Serilog": "2.0.0",
-        "Serilog.Sinks.PeriodicBatching": "2.0.0"
+        "Serilog": "2.4.0",
+        "Serilog.Sinks.PeriodicBatching": "2.1.0"
     },
     "frameworks": {
         "net451": {},
