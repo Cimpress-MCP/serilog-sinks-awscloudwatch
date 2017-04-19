@@ -62,6 +62,22 @@ namespace Serilog.Sinks.AwsCloudWatch
                 {
                     throw new Exception($"Tried to create a log group, but failed with status code '{createResponse.HttpStatusCode}' and data '{createResponse.ResponseMetadata.FlattenedMetaData()}'.");
                 }
+
+                if (options.RetentionInDays.HasValue)
+                {
+                    PutRetentionPolicyRequest retentionPolicy = new PutRetentionPolicyRequest
+                    {
+                        LogGroupName = options.LogGroupName,
+                        RetentionInDays = options.RetentionInDays.Value
+                    };
+
+                    var putPolicyResponse = await cloudWatchClient.PutRetentionPolicyAsync(retentionPolicy);
+
+                    if (!putPolicyResponse.HttpStatusCode.IsSuccessStatusCode())
+                    {
+                        throw new Exception($"Tried to put a retention policy, but failed with status code '{createResponse.HttpStatusCode}' and data '{putPolicyResponse.ResponseMetadata.FlattenedMetaData()}'.");
+                    }
+                }
             }
 
             // create log stream

@@ -35,5 +35,10 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// It's recommended to implement a custom formatter like a simple JSON formatter with various parameters included.
         /// </summary>
         public ILogEventRenderer LogEventRenderer { get; set; }
+
+        /// <summary>
+        /// Specify the RetentionInDays in RetentionPolicy used in AWS CloudWatch.
+        /// </summary>
+        public int? RetentionInDays { get; set; }
     }
 }
