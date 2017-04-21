@@ -4,7 +4,6 @@ using Amazon.CloudWatchLogs;
 using Serilog.Configuration;
 using Serilog.Core;
 using Serilog.Events;
-using static Serilog.Sinks.AwsCloudWatch.CloudWatchSinkOptions;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -50,8 +49,8 @@ namespace Serilog.Sinks.AwsCloudWatch
             string logGroupName,
             IAmazonCloudWatchLogs cloudWatchClient = null,
             ILogEventRenderer logEventRenderer = null,
-            LogEventLevel minimumLogEventLevel = DefaultMinimumLogEventLevel,
-            int batchSizeLimit = DefaultBatchSizeLimit,
+            LogEventLevel minimumLogEventLevel = CloudWatchSinkOptions.DefaultMinimumLogEventLevel,
+            int batchSizeLimit = CloudWatchSinkOptions.DefaultBatchSizeLimit,
             TimeSpan? period = null)
         {
             if (logGroupName == null) throw new ArgumentNullException(nameof(logGroupName));
@@ -61,7 +60,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 LogGroupName = logGroupName,
                 MinimumLogEventLevel = minimumLogEventLevel,
                 BatchSizeLimit = batchSizeLimit,
-                Period = period ?? DefaultPeriod,
+                Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
                 LogEventRenderer = logEventRenderer
             };
             var client = cloudWatchClient ?? new AmazonCloudWatchLogsClient();
@@ -87,8 +86,8 @@ namespace Serilog.Sinks.AwsCloudWatch
             string logGroupName,
             string regionName,
             ILogEventRenderer logEventRenderer = null,
-            LogEventLevel minimumLogEventLevel = DefaultMinimumLogEventLevel,
-            int batchSizeLimit = DefaultBatchSizeLimit,
+            LogEventLevel minimumLogEventLevel = CloudWatchSinkOptions.DefaultMinimumLogEventLevel,
+            int batchSizeLimit = CloudWatchSinkOptions.DefaultBatchSizeLimit,
             TimeSpan? period = null)
         {
             if (logGroupName == null) throw new ArgumentNullException(nameof(logGroupName));
@@ -99,7 +98,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 LogGroupName = logGroupName,
                 MinimumLogEventLevel = minimumLogEventLevel,
                 BatchSizeLimit = batchSizeLimit,
-                Period = period ?? DefaultPeriod,
+                Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
                 LogEventRenderer = logEventRenderer
             };
             var client = new AmazonCloudWatchLogsClient(RegionEndpoint.GetBySystemName(regionName));
@@ -131,8 +130,8 @@ namespace Serilog.Sinks.AwsCloudWatch
             string secretAccessKey,
             string regionName,
             ILogEventRenderer logEventRenderer = null,
-            LogEventLevel minimumLogEventLevel = DefaultMinimumLogEventLevel,
-            int batchSizeLimit = DefaultBatchSizeLimit,
+            LogEventLevel minimumLogEventLevel = CloudWatchSinkOptions.DefaultMinimumLogEventLevel,
+            int batchSizeLimit = CloudWatchSinkOptions.DefaultBatchSizeLimit,
             TimeSpan? period = null)
         {
             if (logGroupName == null) throw new ArgumentNullException(nameof(logGroupName));
@@ -145,7 +144,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 LogGroupName = logGroupName,
                 MinimumLogEventLevel = minimumLogEventLevel,
                 BatchSizeLimit = batchSizeLimit,
-                Period = period ?? DefaultPeriod,
+                Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
                 LogEventRenderer = logEventRenderer
             };
             var client = new AmazonCloudWatchLogsClient(accessKey, secretAccessKey,
