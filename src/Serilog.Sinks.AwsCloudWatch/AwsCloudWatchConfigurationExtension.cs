@@ -47,15 +47,62 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <param name="period">The period to be used when a batch upload should be triggered.</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"><paramref name="logGroupName"/> is <see langword="null"/>.</exception>
-        /// <exception cref="InvalidOperationException">
-        /// An invalid combination of <paramref name="accessKey"/>, <paramref name="secretAccessKey"/>,
-        /// and <paramref name="regionName"/> has been provided.
-        /// </exception>
+        /// <exception cref="ArgumentNullException"><paramref name="accessKey"/> is <see langword="null"/>.</exception>
+        /// <exception cref="ArgumentNullException"><paramref name="secretAccessKey"/> is <see langword="null"/>.</exception>
         public static LoggerConfiguration AmazonCloudWatch(
             this LoggerSinkConfiguration loggerConfiguration,
             string logGroupName,
-            string accessKey = null,
-            string secretAccessKey = null,
+            string accessKey,
+            string secretAccessKey,
+            string regionName = null,
+            ILogEventRenderer logEventRenderer = null,
+            LogEventLevel minimumLogEventLevel = CloudWatchSinkOptions.DefaultMinimumLogEventLevel,
+            int batchSizeLimit = CloudWatchSinkOptions.DefaultBatchSizeLimit,
+            TimeSpan? period = null)
+        {
+            if (logGroupName == null) throw new ArgumentNullException(nameof(logGroupName));
+            if (accessKey == null) { throw new ArgumentNullException(nameof(accessKey)); }
+            if (secretAccessKey == null) { throw new ArgumentNullException(nameof(secretAccessKey)); }
+
+            var options = new CloudWatchSinkOptions
+            {
+                LogGroupName = logGroupName,
+                MinimumLogEventLevel = minimumLogEventLevel,
+                BatchSizeLimit = batchSizeLimit,
+                Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
+                LogEventRenderer = logEventRenderer
+            };
+
+            var credentials = new BasicAWSCredentials(accessKey, secretAccessKey);
+            IAmazonCloudWatchLogs client;
+            if (regionName != null)
+            {
+                var region = RegionEndpoint.GetBySystemName(regionName);
+                client = new AmazonCloudWatchLogsClient(credentials, region);
+            }
+            else
+            {
+                client = new AmazonCloudWatchLogsClient(credentials);
+            }
+            return loggerConfiguration.AmazonCloudWatch(options, client);
+        }
+
+        /// <summary>
+        /// Activates logging to AWS CloudWatch
+        /// </summary>
+        /// <remarks>This overload is intended to be used via AppSettings integration.</remarks>
+        /// <param name="loggerConfiguration">The LoggerSinkConfiguration to register this sink with.</param>
+        /// <param name="logGroupName">The log group name to be used in AWS CloudWatch.</param>
+        /// <param name="regionName">The system name of the region to which to write.</param>
+        /// <param name="logEventRenderer">A renderer to render Serilog's LogEvent.</param>
+        /// <param name="minimumLogEventLevel">The minimum log event level required in order to write an event to the sink.</param>
+        /// <param name="batchSizeLimit">The batch size to be used when uploading logs to AWS CloudWatch.</param>
+        /// <param name="period">The period to be used when a batch upload should be triggered.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"><paramref name="logGroupName"/> is <see langword="null"/>.</exception>
+        public static LoggerConfiguration AmazonCloudWatch(
+            this LoggerSinkConfiguration loggerConfiguration,
+            string logGroupName,
             string regionName = null,
             ILogEventRenderer logEventRenderer = null,
             LogEventLevel minimumLogEventLevel = CloudWatchSinkOptions.DefaultMinimumLogEventLevel,
@@ -72,58 +119,18 @@ namespace Serilog.Sinks.AwsCloudWatch
                 Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
                 LogEventRenderer = logEventRenderer
             };
-            var client = CreateClient(accessKey, secretAccessKey, regionName);
-            return loggerConfiguration.AmazonCloudWatch(options, client);
-        }
 
-        /// <exception cref="InvalidOperationException">
-        /// An invalid combination of <paramref name="accessKey"/>, <paramref name="secretAccessKey"/>,
-        /// and <paramref name="regionName"/> has been provided.
-        /// </exception>
-        static IAmazonCloudWatchLogs CreateClient(
-            string accessKey,
-            string secretAccessKey,
-            string regionName)
-        {
-            /* Some combinations of values are valid, but some are not.
-             * 
-             * accessKey | secretAccessKey | regionName | ->valid?
-             * ---------------------------------------------------
-             *    null   |       null      |    null    |    yes
-             *    null   |       null      |   value    |    yes
-             *    null   |      value      |    null    |     no
-             *    null   |      value      |   value    |     no
-             *   value   |       null      |    null    |     no
-             *   value   |       null      |   value    |     no
-             *   value   |      value      |    null    |    yes
-             *   value   |      value      |   value    |    yes
-             */
-
+            IAmazonCloudWatchLogs client;
             if (regionName != null)
             {
                 var region = RegionEndpoint.GetBySystemName(regionName);
-                if (accessKey != null && secretAccessKey != null)
-                {
-                    var credentials = new BasicAWSCredentials(accessKey, secretAccessKey);
-                    return new AmazonCloudWatchLogsClient(credentials, region);
-                }
-                return new AmazonCloudWatchLogsClient(region);
+                client = new AmazonCloudWatchLogsClient(region);
             }
-
-            if (accessKey != null && secretAccessKey != null)
+            else
             {
-                var credentials = new BasicAWSCredentials(accessKey, secretAccessKey);
-                return new AmazonCloudWatchLogsClient(credentials);
+                client = new AmazonCloudWatchLogsClient();
             }
-
-            if (accessKey == null && secretAccessKey == null)
-            {
-                return new AmazonCloudWatchLogsClient();
-            }
-
-            // If an invalid combination has been provided, yell.
-            throw new InvalidOperationException(
-                @"An invalid combination of ""accessKey"", ""secretAccessKey"", and ""regionName"" has been provided.");
+            return loggerConfiguration.AmazonCloudWatch(options, client);
         }
     }
 }
