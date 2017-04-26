@@ -4,25 +4,40 @@ using Serilog.Events;
 namespace Serilog.Sinks.AwsCloudWatch
 {
     /// <summary>
-    /// Options that allow configuring the Serilog Sink for AWS CloudWatch 
+    /// Options that allow configuring the Serilog Sink for AWS CloudWatch
     /// </summary>
     public class CloudWatchSinkOptions
     {
         /// <summary>
-        /// The minimum log event level required in order to write an event to the sink. Defaults
-        /// to <see cref="LogEventLevel.Information"/>. 
+        /// The default minimum log event level required in order to write an event to the sink.
         /// </summary>
-        public LogEventLevel MinimumLogEventLevel { get; set; } = LogEventLevel.Information;
+        public const LogEventLevel DefaultMinimumLogEventLevel = LogEventLevel.Information;
 
         /// <summary>
-        /// The batch size to be used when uploading logs to cloud watch. Defaults to 100.
+        /// The default batch size to be used when uploading logs to AWS CloudWatch.
         /// </summary>
-        public int BatchSizeLimit { get; set; } = 100;
+        public const int DefaultBatchSizeLimit = 100;
+
+        /// <summary>
+        /// The default period to be used when a batch upload should be triggered.
+        /// </summary>
+        public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(10);
+
+        /// <summary>
+        /// The minimum log event level required in order to write an event to the sink. Defaults
+        /// to <see cref="LogEventLevel.Information"/>.
+        /// </summary>
+        public LogEventLevel MinimumLogEventLevel { get; set; } = DefaultMinimumLogEventLevel;
+
+        /// <summary>
+        /// The batch size to be used when uploading logs to AWS CloudWatch. Defaults to 100.
+        /// </summary>
+        public int BatchSizeLimit { get; set; } = DefaultBatchSizeLimit;
 
         /// <summary>
         /// The period to be used when a batch upload should be triggered. Defaults to 10 seconds.
         /// </summary>
-        public TimeSpan Period { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan Period { get; set; } = DefaultPeriod;
 
         /// <summary>
         /// The log group name to be used in AWS CloudWatch.
