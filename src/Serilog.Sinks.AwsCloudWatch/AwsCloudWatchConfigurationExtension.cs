@@ -95,7 +95,7 @@ namespace Serilog.Sinks.AwsCloudWatch
              *    null   |      value      |   value    |     no
              *   value   |       null      |    null    |     no
              *   value   |       null      |   value    |     no
-             *   value   |      value      |    null    |     no
+             *   value   |      value      |    null    |    yes
              *   value   |      value      |   value    |    yes
              */
 
@@ -108,6 +108,12 @@ namespace Serilog.Sinks.AwsCloudWatch
                     return new AmazonCloudWatchLogsClient(credentials, region);
                 }
                 return new AmazonCloudWatchLogsClient(region);
+            }
+
+            if (accessKey != null && secretAccessKey != null)
+            {
+                var credentials = new BasicAWSCredentials(accessKey, secretAccessKey);
+                return new AmazonCloudWatchLogsClient(credentials);
             }
 
             if (accessKey == null && secretAccessKey == null)
