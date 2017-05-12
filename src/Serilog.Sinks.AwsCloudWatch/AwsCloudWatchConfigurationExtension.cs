@@ -68,7 +68,7 @@ namespace Serilog.Sinks.AwsCloudWatch
 
             var options = new CloudWatchSinkOptions
             {
-                LogGroupName = logGroupName,                
+                LogGroupName = logGroupName,
                 MinimumLogEventLevel = minimumLogEventLevel,
                 BatchSizeLimit = batchSizeLimit,
                 Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
