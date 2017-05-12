@@ -47,7 +47,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <summary>
         /// The log stream name to be used in AWS CloudWatch.
         /// </summary>
-        public string LogStreamName { get; set; } = string.Empty;
+        public ILogStreamNameProvider LogStreamNameProvider { get; set; } = new DefaultLogStreamProvider();
 
         /// <summary>
         /// A renderer to render Serilog's LogEvent. It defaults to <see cref="RenderedMessageLogEventRenderer"/>,
