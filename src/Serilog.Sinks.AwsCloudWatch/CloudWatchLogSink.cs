@@ -36,7 +36,9 @@ namespace Serilog.Sinks.AwsCloudWatch
         private void UpdateLogStreamName()
         {
             var prefix = DateTime.UtcNow.ToString("yyyy-MM-dd-hh-mm-ss");
-            logStreamName = $"{prefix}_{Dns.GetHostName()}_{Guid.NewGuid()}";
+            logStreamName = String.IsNullOrWhiteSpace(options.LogStreamName) 
+                ? $"{prefix}_{Dns.GetHostName()}_{Guid.NewGuid()}" 
+                : $"{prefix}_{options.LogStreamName}_{Guid.NewGuid()}";
             nextSequenceToken = null;
             hasInit = false;
         }

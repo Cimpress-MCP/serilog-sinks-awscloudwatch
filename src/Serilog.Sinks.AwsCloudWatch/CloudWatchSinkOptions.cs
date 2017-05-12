@@ -45,6 +45,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         public string LogGroupName { get; set; }
 
         /// <summary>
+        /// The log stream name to be used in AWS CloudWatch.
+        /// </summary>
+        public string LogStreamName { get; set; } = string.Empty;
+
+        /// <summary>
         /// A renderer to render Serilog's LogEvent. It defaults to <see cref="RenderedMessageLogEventRenderer"/>,
         /// which just flattens the log event to a simple string, losing all formatted data.
         /// It's recommended to implement a custom formatter like a simple JSON formatter with various parameters included.
