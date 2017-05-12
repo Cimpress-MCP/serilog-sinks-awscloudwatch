@@ -6,9 +6,6 @@ using System.Threading.Tasks;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
-    /// <summary>
-    /// 
-    /// </summary>
     public interface ILogStreamNameProvider
     {
         /// <summary>
