@@ -23,7 +23,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         {
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
-            renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
+            renderer = options.LogEventRenderer ?? new DefaultLogEventRenderer();            
 
             UpdateLogStreamName();
         }
