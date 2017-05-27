@@ -72,7 +72,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 MinimumLogEventLevel = minimumLogEventLevel,
                 BatchSizeLimit = batchSizeLimit,
                 Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
-                LogEventRenderer = logEventRenderer                
+                LogEventRenderer = logEventRenderer
             };
 
             if (!String.IsNullOrWhiteSpace(logStreamNamePrefix))
