@@ -19,14 +19,14 @@ namespace Serilog.Sinks.AwsCloudWatch
         public const int DefaultBatchSizeLimit = 100;
 
         /// <summary>
-        /// The default period to be used when a batch upload should be triggered.
-        /// </summary>
-        public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(10);
-
-        /// <summary>
         /// The default to be used when deciding to create the log group or not
         /// </summary>
         public const bool DefaultCreateLogGroup = true;
+
+        /// <summary>
+        /// The default period to be used when a batch upload should be triggered.
+        /// </summary>
+        public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(10);
 
         /// <summary>
         /// The minimum log event level required in order to write an event to the sink. Defaults
