@@ -24,6 +24,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(10);
 
         /// <summary>
+        /// The default to be used when deciding to create the log group or not
+        /// </summary>
+        public const bool DefaultCreateLogGroup = true;
+
+        /// <summary>
         /// The minimum log event level required in order to write an event to the sink. Defaults
         /// to <see cref="LogEventLevel.Information"/>.
         /// </summary>
@@ -38,6 +43,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The period to be used when a batch upload should be triggered. Defaults to 10 seconds.
         /// </summary>
         public TimeSpan Period { get; set; } = DefaultPeriod;
+
+        /// <summary>
+        /// The log group name to be used in AWS CloudWatch.
+        /// </summary>
+        public bool CreateLogGroup { get; set; } = DefaultCreateLogGroup;
 
         /// <summary>
         /// The log group name to be used in AWS CloudWatch.

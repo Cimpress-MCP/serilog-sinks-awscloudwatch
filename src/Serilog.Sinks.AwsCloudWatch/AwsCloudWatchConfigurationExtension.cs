@@ -116,7 +116,8 @@ namespace Serilog.Sinks.AwsCloudWatch
             ILogEventRenderer logEventRenderer = null,
             LogEventLevel minimumLogEventLevel = CloudWatchSinkOptions.DefaultMinimumLogEventLevel,
             int batchSizeLimit = CloudWatchSinkOptions.DefaultBatchSizeLimit,
-            TimeSpan? period = null)
+            TimeSpan? period = null,
+            bool createLogGroup = CloudWatchSinkOptions.DefaultCreateLogGroup)
         {
             if (logGroupName == null) throw new ArgumentNullException(nameof(logGroupName));
 
@@ -126,7 +127,8 @@ namespace Serilog.Sinks.AwsCloudWatch
                 MinimumLogEventLevel = minimumLogEventLevel,
                 BatchSizeLimit = batchSizeLimit,
                 Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
-                LogEventRenderer = logEventRenderer
+                LogEventRenderer = logEventRenderer,
+                CreateLogGroup = createLogGroup
             };
 
             if (!String.IsNullOrWhiteSpace(logStreamNamePrefix))
