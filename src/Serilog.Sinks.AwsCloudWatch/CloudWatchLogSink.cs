@@ -47,19 +47,22 @@ namespace Serilog.Sinks.AwsCloudWatch
                 return;
             }
 
-            // see if the log group already exists
-            DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest {LogGroupNamePrefix = options.LogGroupName};
-            var logGroups = await cloudWatchClient.DescribeLogGroupsAsync(describeRequest);
-            var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.OrdinalIgnoreCase));
-
-            // create log group if it doesn't exist
-            if (logGroup == null)
+            if (options.CreateLogGroup)
             {
-                CreateLogGroupRequest createRequest = new CreateLogGroupRequest(options.LogGroupName);
-                var createResponse = await cloudWatchClient.CreateLogGroupAsync(createRequest);
-                if (!createResponse.HttpStatusCode.IsSuccessStatusCode())
+                // see if the log group already exists
+                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName };
+                var logGroups = await cloudWatchClient.DescribeLogGroupsAsync(describeRequest);
+                var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.OrdinalIgnoreCase));
+
+                // create log group if it doesn't exist
+                if (logGroup == null)
                 {
-                    throw new Exception($"Tried to create a log group, but failed with status code '{createResponse.HttpStatusCode}' and data '{createResponse.ResponseMetadata.FlattenedMetaData()}'.");
+                    CreateLogGroupRequest createRequest = new CreateLogGroupRequest(options.LogGroupName);
+                    var createResponse = await cloudWatchClient.CreateLogGroupAsync(createRequest);
+                    if (!createResponse.HttpStatusCode.IsSuccessStatusCode())
+                    {
+                        throw new Exception($"Tried to create a log group, but failed with status code '{createResponse.HttpStatusCode}' and data '{createResponse.ResponseMetadata.FlattenedMetaData()}'.");
+                    }
                 }
             }
 

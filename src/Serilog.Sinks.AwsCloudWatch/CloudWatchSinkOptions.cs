@@ -19,6 +19,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         public const int DefaultBatchSizeLimit = 100;
 
         /// <summary>
+        /// The default to be used when deciding to create the log group or not
+        /// </summary>
+        public const bool DefaultCreateLogGroup = true;
+
+        /// <summary>
         /// The default period to be used when a batch upload should be triggered.
         /// </summary>
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(10);
@@ -38,6 +43,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The period to be used when a batch upload should be triggered. Defaults to 10 seconds.
         /// </summary>
         public TimeSpan Period { get; set; } = DefaultPeriod;
+
+        /// <summary>
+        /// The log group name to be used in AWS CloudWatch.
+        /// </summary>
+        public bool CreateLogGroup { get; set; } = DefaultCreateLogGroup;
 
         /// <summary>
         /// The log group name to be used in AWS CloudWatch.
