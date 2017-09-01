@@ -21,6 +21,10 @@ namespace Serilog.Sinks.AwsCloudWatch
         
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options) : base(options.BatchSizeLimit, options.Period)
         {
+            if (options.BatchSizeLimit < 1)
+            {
+                throw new ArgumentException($"{nameof(CloudWatchSinkOptions)}.{nameof(options.BatchSizeLimit)} must be a value greater than 0.");
+            }
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
             renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
