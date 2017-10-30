@@ -67,6 +67,24 @@ namespace Serilog.Sinks.AwsCloudWatch
                 return;
             }
 
+            // create log group
+            await CreateLogGroupAsync();
+
+            // create log stream
+            UpdateLogStreamName();
+            await CreateLogStreamAsync();
+
+            hasInit = true;
+        }
+
+        private void UpdateLogStreamName()
+        {
+            logStreamName = options.LogStreamNameProvider.GetLogStreamName();
+            nextSequenceToken = null; // always reset on a new stream
+        }
+
+        private async Task CreateLogGroupAsync()
+        {
             if (options.CreateLogGroup)
             {
                 // see if the log group already exists
@@ -81,13 +99,14 @@ namespace Serilog.Sinks.AwsCloudWatch
                     var createResponse = await cloudWatchClient.CreateLogGroupAsync(createRequest);
                     if (!createResponse.HttpStatusCode.IsSuccessStatusCode())
                     {
-                        throw new Exception($"Tried to create a log group, but failed with status code '{createResponse.HttpStatusCode}' and data '{createResponse.ResponseMetadata.FlattenedMetaData()}'.");
+                        throw new AwsCloudWatchSinkException($"Tried to create a log group, but failed with status code '{createResponse.HttpStatusCode}' and data '{createResponse.ResponseMetadata.FlattenedMetaData()}'.");
                     }
                 }
             }
+        }
 
-            // create log stream
-            logStreamName = options.LogStreamNameProvider.GetLogStreamName();
+        private async Task CreateLogStreamAsync()
+        {
             CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest()
             {
                 LogGroupName = options.LogGroupName,
@@ -96,11 +115,25 @@ namespace Serilog.Sinks.AwsCloudWatch
             var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
             if (!createLogStreamResponse.HttpStatusCode.IsSuccessStatusCode())
             {
-                throw new Exception(
+                throw new AwsCloudWatchSinkException(
                     $"Tried to create a log stream, but failed with status code '{createLogStreamResponse.HttpStatusCode}' and data '{createLogStreamResponse.ResponseMetadata.FlattenedMetaData()}'.");
             }
+        }
 
-            hasInit = true;
+        private async Task UpdateLogStreamSequenceTokenAsync()
+        {
+            DescribeLogStreamsRequest describeLogStreamsRequest = new DescribeLogStreamsRequest
+            {
+                LogGroupName = options.LogGroupName,
+                LogStreamNamePrefix = logStreamName
+            };
+            var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
+            if (!describeLogStreamsResponse.HttpStatusCode.IsSuccessStatusCode())
+            {
+                throw new AwsCloudWatchSinkException(
+                    $"Failed to describe log streams with status code '{describeLogStreamsResponse.HttpStatusCode}' and data '{describeLogStreamsResponse.ResponseMetadata.FlattenedMetaData()}'.");
+            }
+            nextSequenceToken = describeLogStreamsResponse.NextToken;
         }
 
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
@@ -118,7 +151,6 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
             catch (Exception ex)
             {
-                throw ex;
                 Debugging.SelfLog.WriteLine("Error initializing log stream. No logs will be sent to AWS CloudWatch. Exception was {0}.", ex);
                 return;
             }
@@ -151,6 +183,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                     var batchSize = 0;
                     var batch = new List<InputLogEvent>();
 
+                    // build batch
                     do
                     {
                         var @event = logEvents.Peek();
@@ -193,31 +226,80 @@ namespace Serilog.Sinks.AwsCloudWatch
                             // actually upload the event to CloudWatch
                             var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putEventsRequest);
 
-                            // remember the next sequence token, which is required
-                            nextSequenceToken = putLogEventsResponse.NextSequenceToken;
+                            if (putLogEventsResponse.HttpStatusCode.IsSuccessStatusCode())
+                            {
+                                // remember the next sequence token, which is required
+                                nextSequenceToken = putLogEventsResponse.NextSequenceToken;
 
-                            // throttle
-                            await Task.Delay(ThrottlingInterval);
+                                // throttle
+                                await Task.Delay(ThrottlingInterval);
 
-                            success = true;
+                                success = true;
+                            }
                         }
                         catch (ServiceUnavailableException e)
                         {
+                            // retry with back-off
                             Debugging.SelfLog.WriteLine("Service unavailable.  Attempt: {0}  Error: {1}", attempt, e);
                             await Task.Delay(ErrorBackoffStartingInterval.Milliseconds * (int)Math.Pow(2, attempt));
                             attempt++;
                         }
                         catch (InvalidParameterException e)
                         {
+                            // cannot modify request without investigation
                             Debugging.SelfLog.WriteLine("Invalid parameter.  Error: {0}", e);
                             break;
+                        }
+                        catch (ResourceNotFoundException e)
+                        {
+                            // no retry with back-off because..
+                            //   if one of these fails, we get out of the loop.
+                            //   if they're both successful, we don't hit this case again.
+                            Debugging.SelfLog.WriteLine("Resource was not found.  Error: {0}", e);
+                            await CreateLogGroupAsync();
+                            await CreateLogStreamAsync();
+                        }
+                        catch (DataAlreadyAcceptedException e)
+                        {
+                            Debugging.SelfLog.WriteLine("Data already accepted.  Attempt: {0}  Error: {1}", attempt, e);
+                            try
+                            {
+                                await UpdateLogStreamSequenceTokenAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attempt, ex);
+
+                                // try again with a different log stream
+                                UpdateLogStreamName();
+                                await CreateLogStreamAsync();
+                                putEventsRequest.LogStreamName = logStreamName;
+                            }
+                            attempt++; // don't think this is case we care about incrementing
+                        }
+                        catch (InvalidSequenceTokenException e)
+                        {
+                            Debugging.SelfLog.WriteLine("Invalid sequence token.  Attempt: {0}  Error: {1}", attempt, e);
+                            try
+                            {
+                                await UpdateLogStreamSequenceTokenAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attempt, ex);
+
+                                // try again with a different log stream
+                                UpdateLogStreamName();
+                                await CreateLogStreamAsync();
+                                putEventsRequest.LogStreamName = logStreamName;
+                            }
+                            attempt++; // don't think this is case we care about incrementing
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                throw ex;
                 try
                 {
                     Debugging.SelfLog.WriteLine("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);

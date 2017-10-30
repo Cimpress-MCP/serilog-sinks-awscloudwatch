@@ -519,16 +519,90 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.VerifyAll();
         }
 
-        [Fact(DisplayName = "EmitBatchAsync - Resource not found", Skip = "Implement")]
+        [Fact(DisplayName = "EmitBatchAsync - Resource not found")]
         public async Task ResourceNotFound()
         {
             // expect failure, creation of log group/stream, and evenutal success
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var options = new CloudWatchSinkOptions();
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
+            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<CreateLogStreamRequest, CancellationToken>((createLogStreamRequest, cancellationToken) => createLogStreamRequests.Add(createLogStreamRequest))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.SetupSequence(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ResourceNotFoundException("no resource"))
+                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
+
+            await sink.EmitBatchAsync(events);
+
+            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.Verify(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.Verify(mock => mock.CreateLogGroupAsync(It.Is<CreateLogGroupRequest>(req => req.LogGroupName == options.LogGroupName), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+            Assert.Equal(createLogStreamRequests.ElementAt(0).LogStreamName, createLogStreamRequests.ElementAt(1).LogStreamName);
+
+            client.VerifyAll();
         }
 
-        [Fact(DisplayName = "EmitBatchAsync - Unable to create resource", Skip = "Implement")]
+        [Fact(DisplayName = "EmitBatchAsync - Unable to create resource")]
         public async Task ResourceNotFound_CannotCreateResource()
         {
             // expect failure with failure to successfully create resources upon retries
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var options = new CloudWatchSinkOptions();
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.SetupSequence(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK })
+                .ThrowsAsync(new Exception("can't create a new log stream"));
+
+            client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ResourceNotFoundException("no resource"));
+
+            await sink.EmitBatchAsync(events);
+
+            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(1));
+            client.Verify(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.Verify(mock => mock.CreateLogGroupAsync(It.Is<CreateLogGroupRequest>(req => req.LogGroupName == options.LogGroupName), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+            client.VerifyAll();
         }
 
         [Fact(DisplayName = "EmitBatchAsync - Invalid parameter")]
@@ -570,22 +644,149 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.VerifyAll();
         }
 
-        [Fact(DisplayName = "EmitBatchAsync - Invalid sequence token", Skip = "Implement")]
+        [Fact(DisplayName = "EmitBatchAsync - Invalid sequence token")]
         public async Task InvalidSequenceToken()
         {
             // expect update of sequence token and successful retry
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var options = new CloudWatchSinkOptions();
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextToken = Guid.NewGuid().ToString() });
+
+            List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
+            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<CreateLogStreamRequest, CancellationToken>((createLogStreamRequest, cancellationToken) => createLogStreamRequests.Add(createLogStreamRequest))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.SetupSequence(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidSequenceTokenException("invalid sequence"))
+                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
+
+            await sink.EmitBatchAsync(events);
+
+            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Once);
+            client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+
+            client.VerifyAll();
         }
 
-        [Fact(DisplayName = "EmitBatchAsync - Invalid sequence token with new log stream", Skip = "Implement")]
+        [Fact(DisplayName = "EmitBatchAsync - Invalid sequence token with new log stream")]
         public async Task InvalidSequenceToken_CannotUpdateSequenceToken()
         {
-            // expect update of sequence token and successful retry
+            // expect update of sequence token and success on a new log stream
+
+            var logStreamNameProvider = new Mock<ILogStreamNameProvider>();
+            logStreamNameProvider.SetupSequence(mock => mock.GetLogStreamName())
+                .Returns("a")
+                .Returns("b");
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var options = new CloudWatchSinkOptions { LogStreamNameProvider = logStreamNameProvider.Object };
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("no describe log stream"));
+
+            List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
+            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<CreateLogStreamRequest, CancellationToken>((createLogStreamRequest, cancellationToken) => createLogStreamRequests.Add(createLogStreamRequest))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.PutLogEventsAsync(It.Is<PutLogEventsRequest>(req => req.LogStreamName == "a"), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidSequenceTokenException("invalid sequence"));
+
+            client.Setup(mock => mock.PutLogEventsAsync(It.Is<PutLogEventsRequest>(req => req.LogStreamName == "b"), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
+
+            await sink.EmitBatchAsync(events);
+
+            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Once);
+            client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+            Assert.Equal(2, createLogStreamRequests.Count);
+            Assert.NotEqual(createLogStreamRequests.ElementAt(0).LogStreamName, createLogStreamRequests.ElementAt(1).LogStreamName);
+
+            client.VerifyAll();
         }
 
-        [Fact(DisplayName = "EmitBatchAsync - Data already accepted", Skip = "Implement")]
+        [Fact(DisplayName = "EmitBatchAsync - Data already accepted")]
         public async Task DataAlreadyAccepted()
         {
             // expect update of sequence token and successful retry
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var options = new CloudWatchSinkOptions();
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextToken = Guid.NewGuid().ToString() });
+
+            List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
+            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<CreateLogStreamRequest, CancellationToken>((createLogStreamRequest, cancellationToken) => createLogStreamRequests.Add(createLogStreamRequest))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.SetupSequence(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new DataAlreadyAcceptedException("data already accepted"))
+                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
+
+            await sink.EmitBatchAsync(events);
+
+            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Once);
+            client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+
+            client.VerifyAll();
         }
 
 
