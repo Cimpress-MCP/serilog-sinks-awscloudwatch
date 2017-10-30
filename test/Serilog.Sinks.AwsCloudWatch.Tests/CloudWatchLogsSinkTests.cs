@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Serilog.Sinks.AwsCloudWatch.Tests
 {
@@ -16,6 +17,12 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
     {
         private const string Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         private static Random random = new Random((int)DateTime.Now.Ticks);
+
+        public CloudWatchLogsSinkTests(ITestOutputHelper output)
+        {
+            // so we can inspect what will be output to selflog
+            Debugging.SelfLog.Enable(msg => output.WriteLine(msg));
+        }
 
         [Fact(DisplayName = "EmitBatchAsync - Single batch")]
         public async Task SingleBatch()
@@ -427,16 +434,89 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.VerifyAll();
         }
 
-        [Fact(DisplayName = "EmitBatchAsync - Service unavailable", Skip = "Implement")]
+        [Fact(DisplayName = "EmitBatchAsync - Service unavailable")]
         public async Task ServiceUnavailable()
         {
             // expect retries until exhausted
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var options = new CloudWatchSinkOptions();
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken, DateTime datetime)>();
+            client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken, DateTime.UtcNow))) // keep track of the requests made
+                .ThrowsAsync(new ServiceUnavailableException("unavailable"));
+
+            await sink.EmitBatchAsync(events);
+
+            Assert.Equal(options.RetryAttempts + 1, putLogEventsCalls.Count);
+
+            TimeSpan lastInterval = TimeSpan.Zero;
+            for (var i = 1; i < putLogEventsCalls.Count; i++)
+            {
+                // ensure retry attempts are throttled properly
+                var interval = putLogEventsCalls[i].datetime.Subtract(putLogEventsCalls[i - 1].datetime);
+                Assert.True(interval.TotalMilliseconds >= (CloudWatchLogSink.ErrorBackoffStartingInterval.Milliseconds * Math.Pow(2, i - 1)), $"{interval.TotalMilliseconds} >= {CloudWatchLogSink.ErrorBackoffStartingInterval.Milliseconds * Math.Pow(2, i - 1)}");
+                lastInterval = interval;
+            }
+            
+            client.VerifyAll();
         }
 
-        [Fact(DisplayName = "EmitBatchAsync - Service unavailable with eventual success", Skip = "Implement")]
+        [Fact(DisplayName = "EmitBatchAsync - Service unavailable with eventual success")]
         public async Task ServiceUnavailable_WithEventualSuccess()
         {
             // expect successful posting of batch after retry
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var options = new CloudWatchSinkOptions();
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.SetupSequence(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ServiceUnavailableException("unavailable"))
+                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
+
+            await sink.EmitBatchAsync(events);
+
+            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+            client.VerifyAll();
         }
 
         [Fact(DisplayName = "EmitBatchAsync - Resource not found", Skip = "Implement")]

@@ -36,6 +36,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// </summary>
         public static readonly TimeSpan ThrottlingInterval = TimeSpan.FromMilliseconds(200);
 
+        /// <summary>
+        /// The span of time to backoff when an error occurs
+        /// </summary>
+        public static readonly TimeSpan ErrorBackoffStartingInterval = TimeSpan.FromMilliseconds(100);
+
         private readonly IAmazonCloudWatchLogs cloudWatchClient;
         private readonly CloudWatchSinkOptions options;
         private bool hasInit;
@@ -58,8 +63,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                 return;
             }
 
-            logStreamName = options.LogStreamNameProvider.GetLogStreamName();
-
             if (options.CreateLogGroup)
             {
                 // see if the log group already exists
@@ -80,6 +83,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
 
             // create log stream
+            logStreamName = options.LogStreamNameProvider.GetLogStreamName();
             CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest()
             {
                 LogGroupName = options.LogGroupName,
@@ -126,6 +130,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                                 var message = renderer.RenderLogEvent(@event);
                                 if (message.Length > MaxLogEventSize)
                                 {
+                                    // truncate event message
                                     Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", message.Length);
                                     message = message.Substring(0, MaxLogEventSize);
                                 }
@@ -175,29 +180,31 @@ namespace Serilog.Sinks.AwsCloudWatch
                         LogEvents = batch
                     };
 
-                    // actually upload the event to CloudWatch
-                    var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putEventsRequest);
+                    var success = false;
+                    var attempt = 0;
+                    while (!success && attempt <= options.RetryAttempts)
+                    {
+                        try
+                        {
+                            // actually upload the event to CloudWatch
+                            var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putEventsRequest);
 
-                    // remember the next sequence token, which is required
-                    nextSequenceToken = putLogEventsResponse.NextSequenceToken;
+                            // remember the next sequence token, which is required
+                            nextSequenceToken = putLogEventsResponse.NextSequenceToken;
 
-                    // throttle
-                    await Task.Delay(ThrottlingInterval);
+                            // throttle
+                            await Task.Delay(ThrottlingInterval);
+
+                            success = true;
+                        }
+                        catch (ServiceUnavailableException e)
+                        {
+                            Debugging.SelfLog.WriteLine("Service unavailable.  Attempt: {0}  Error: {1}", attempt, e);
+                            await Task.Delay(ErrorBackoffStartingInterval.Milliseconds * (int)Math.Pow(2, attempt));
+                            attempt++;
+                        }
+                    }
                 }
-
-
-                //logEvents.TakeWhile(@event =>
-                //{
-                //    return true;
-                //});
-
-
-                //var attempt = 0;
-                //do
-                //{
-
-                //} while (attempt < options.RetryAttempts);
-
             }
             catch (Exception ex)
             {
