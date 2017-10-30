@@ -207,6 +207,11 @@ namespace Serilog.Sinks.AwsCloudWatch
                             await Task.Delay(ErrorBackoffStartingInterval.Milliseconds * (int)Math.Pow(2, attempt));
                             attempt++;
                         }
+                        catch (InvalidParameterException e)
+                        {
+                            Debugging.SelfLog.WriteLine("Invalid parameter.  Error: {0}", e);
+                            break;
+                        }
                     }
                 }
             }
