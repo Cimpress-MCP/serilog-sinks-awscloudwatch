@@ -51,13 +51,53 @@ namespace Serilog.Sinks.AwsCloudWatch
             this.renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
         }
 
-        private async Task EnsureInitialized()
+        private async Task EnsureInitializedAsync()
         {
+            if (hasInit)
+            {
+                return;
+            }
+
+            logStreamName = options.LogStreamNameProvider.GetLogStreamName();
+
+            if (options.CreateLogGroup)
+            {
+                // see if the log group already exists
+                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName };
+                var logGroups = await cloudWatchClient.DescribeLogGroupsAsync(describeRequest);
+                var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.OrdinalIgnoreCase));
+
+                // create log group if it doesn't exist
+                if (logGroup == null)
+                {
+                    CreateLogGroupRequest createRequest = new CreateLogGroupRequest(options.LogGroupName);
+                    var createResponse = await cloudWatchClient.CreateLogGroupAsync(createRequest);
+                    if (!createResponse.HttpStatusCode.IsSuccessStatusCode())
+                    {
+                        throw new Exception($"Tried to create a log group, but failed with status code '{createResponse.HttpStatusCode}' and data '{createResponse.ResponseMetadata.FlattenedMetaData()}'.");
+                    }
+                }
+            }
+
+            // create log stream
+            CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest()
+            {
+                LogGroupName = options.LogGroupName,
+                LogStreamName = logStreamName
+            };
+            var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
+            if (!createLogStreamResponse.HttpStatusCode.IsSuccessStatusCode())
+            {
+                throw new Exception(
+                    $"Tried to create a log stream, but failed with status code '{createLogStreamResponse.HttpStatusCode}' and data '{createLogStreamResponse.ResponseMetadata.FlattenedMetaData()}'.");
+            }
+
+            hasInit = true;
         }
 
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
-            if (events.Count() == 0)
+            if (events?.Count() == 0)
             {
                 return;
             }
@@ -66,10 +106,11 @@ namespace Serilog.Sinks.AwsCloudWatch
 
             try
             {
-                await EnsureInitialized();
+                await EnsureInitializedAsync();
             }
             catch (Exception ex)
             {
+                throw ex;
                 Debugging.SelfLog.WriteLine("Error initializing log stream. No logs will be sent to AWS CloudWatch. Exception was {0}.", ex);
                 return;
             }
@@ -160,6 +201,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
             catch (Exception ex)
             {
+                throw ex;
                 try
                 {
                     Debugging.SelfLog.WriteLine("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
