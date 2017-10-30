@@ -531,10 +531,43 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             // expect failure with failure to successfully create resources upon retries
         }
 
-        [Fact(DisplayName = "EmitBatchAsync - Invalid parameter", Skip = "Implement")]
+        [Fact(DisplayName = "EmitBatchAsync - Invalid parameter")]
         public async Task InvalidParameter()
         {
             // expect batch dropped
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var options = new CloudWatchSinkOptions();
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken, DateTime datetime)>();
+            client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken, DateTime.UtcNow))) // keep track of the requests made
+                .ThrowsAsync(new InvalidParameterException("invalid param"));
+
+            await sink.EmitBatchAsync(events);
+
+            Assert.Single(putLogEventsCalls);
+
+            client.VerifyAll();
         }
 
         [Fact(DisplayName = "EmitBatchAsync - Invalid sequence token", Skip = "Implement")]
