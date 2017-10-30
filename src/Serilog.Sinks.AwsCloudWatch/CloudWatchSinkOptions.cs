@@ -1,5 +1,5 @@
-using System;
 using Serilog.Events;
+using System;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -22,6 +22,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The default to be used when deciding to create the log group or not
         /// </summary>
         public const bool DefaultCreateLogGroup = true;
+
+        /// <summary>
+        /// By default, retry an attempt to send log events to CloudWatch Logs 5 times.
+        /// </summary>
+        public const byte DefaultRetryAttempts = 5;
 
         /// <summary>
         /// The default period to be used when a batch upload should be triggered.
@@ -65,5 +70,10 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// It's recommended to implement a custom formatter like a simple JSON formatter with various parameters included.
         /// </summary>
         public ILogEventRenderer LogEventRenderer { get; set; }
+
+        /// <summary>
+        /// The number of attempts to retry in the case of a failure.
+        /// </summary>
+        public byte RetryAttempts { get; set; } = DefaultRetryAttempts;
     }
 }
