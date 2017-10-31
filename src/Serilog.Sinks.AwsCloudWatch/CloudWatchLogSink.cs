@@ -9,6 +9,10 @@ using System.Threading.Tasks;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
+    /// <summary>
+    /// A Serilog log sink that publishes to AWS CloudWatch Logs
+    /// </summary>
+    /// <seealso cref="Serilog.Sinks.PeriodicBatching.PeriodicBatchingSink" />
     public class CloudWatchLogSink : PeriodicBatchingSink
     {
         /// <summary>
@@ -48,6 +52,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         private string nextSequenceToken;
         private readonly ILogEventRenderer renderer;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CloudWatchLogSink"/> class.
+        /// </summary>
+        /// <param name="cloudWatchClient">The cloud watch client.</param>
+        /// <param name="options">The options.</param>
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options)
             : base(options.BatchSizeLimit, options.Period)
         {
@@ -56,6 +65,9 @@ namespace Serilog.Sinks.AwsCloudWatch
             this.renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
         }
 
+        /// <summary>
+        /// Ensures the component is initialized.
+        /// </summary>
         private async Task EnsureInitializedAsync()
         {
             if (hasInit)
@@ -73,12 +85,10 @@ namespace Serilog.Sinks.AwsCloudWatch
             hasInit = true;
         }
 
-        private void UpdateLogStreamName()
-        {
-            logStreamName = options.LogStreamNameProvider.GetLogStreamName();
-            nextSequenceToken = null; // always reset on a new stream
-        }
-
+        /// <summary>
+        /// Creates the log group.
+        /// </summary>
+        /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task CreateLogGroupAsync()
         {
             if (options.CreateLogGroup)
@@ -101,6 +111,19 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
         }
 
+        /// <summary>
+        /// Updates the name of the log stream.
+        /// </summary>
+        private void UpdateLogStreamName()
+        {
+            logStreamName = options.LogStreamNameProvider.GetLogStreamName();
+            nextSequenceToken = null; // always reset on a new stream
+        }
+
+        /// <summary>
+        /// Creates the log stream.
+        /// </summary>
+        /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task CreateLogStreamAsync()
         {
             CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest()
@@ -116,6 +139,10 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
         }
 
+        /// <summary>
+        /// Updates the log stream sequence token.
+        /// </summary>
+        /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task UpdateLogStreamSequenceTokenAsync()
         {
             DescribeLogStreamsRequest describeLogStreamsRequest = new DescribeLogStreamsRequest
@@ -132,6 +159,138 @@ namespace Serilog.Sinks.AwsCloudWatch
             nextSequenceToken = describeLogStreamsResponse.NextToken;
         }
 
+        /// <summary>
+        /// Creates a batch of events.
+        /// </summary>
+        /// <param name="logEvents">The entire set of log events.</param>
+        /// <returns>A batch of events meeting defined restrictions.</returns>
+        private List<InputLogEvent> CreateBatch(Queue<InputLogEvent> logEvents)
+        {
+            DateTime? first = null;
+            var batchSize = 0;
+            var batch = new List<InputLogEvent>();
+
+            do
+            {
+                var @event = logEvents.Peek();
+                if (!first.HasValue)
+                {
+                    first = @event.Timestamp;
+                }
+                else if (@event.Timestamp.Subtract(first.Value) > MaxBatchEventSpan) // ensure batch spans no more than 24 hours
+                {
+                    break;
+                }
+
+                if (batchSize + System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize < MaxLogEventBatchSize) // ensure < max batch size
+                {
+                    batchSize += System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize;
+                    batch.Add(@event);
+                    logEvents.Dequeue();
+                }
+                else
+                {
+                    break;
+                }
+            } while (batch.Count < MaxLogEventBatchCount && logEvents.Count > 0); // ensure < max batch count
+
+            return batch;
+        }
+
+        /// <summary>
+        /// Publish the batch of log events to AWS CloudWatch Logs.
+        /// </summary>
+        /// <param name="batch">The request.</param>
+        private async Task PublishBatchAsync(List<InputLogEvent> batch)
+        {
+            // creates the request to upload a new event to CloudWatch
+            PutLogEventsRequest putLogEventsRequest = new PutLogEventsRequest
+            {
+                LogGroupName = options.LogGroupName,
+                LogStreamName = logStreamName,
+                SequenceToken = nextSequenceToken,
+                LogEvents = batch
+            };
+
+            var success = false;
+            var attemptIndex = 0;
+            while (!success && attemptIndex <= options.RetryAttempts)
+            {
+                try
+                {
+                    // actually upload the event to CloudWatch
+                    var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putLogEventsRequest);
+
+                    // remember the next sequence token, which is required
+                    nextSequenceToken = putLogEventsResponse.NextSequenceToken;
+
+                    success = true;
+                }
+                catch (ServiceUnavailableException e)
+                {
+                    // retry with back-off
+                    Debugging.SelfLog.WriteLine("Service unavailable.  Attempt: {0}  Error: {1}", attemptIndex, e);
+                    await Task.Delay(ErrorBackoffStartingInterval.Milliseconds * (int)Math.Pow(2, attemptIndex));
+                    attemptIndex++;
+                }
+                catch (InvalidParameterException e)
+                {
+                    // cannot modify request without investigation
+                    Debugging.SelfLog.WriteLine("Invalid parameter.  Error: {0}", e);
+                    break;
+                }
+                catch (ResourceNotFoundException e)
+                {
+                    // no retry with back-off because..
+                    //   if one of these fails, we get out of the loop.
+                    //   if they're both successful, we don't hit this case again.
+                    Debugging.SelfLog.WriteLine("Resource was not found.  Error: {0}", e);
+                    await CreateLogGroupAsync();
+                    await CreateLogStreamAsync();
+                }
+                catch (DataAlreadyAcceptedException e)
+                {
+                    Debugging.SelfLog.WriteLine("Data already accepted.  Attempt: {0}  Error: {1}", attemptIndex, e);
+                    try
+                    {
+                        await UpdateLogStreamSequenceTokenAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attemptIndex, ex);
+
+                        // try again with a different log stream
+                        UpdateLogStreamName();
+                        await CreateLogStreamAsync();
+                        putLogEventsRequest.LogStreamName = logStreamName;
+                    }
+                    attemptIndex++; // don't think this is case we care about incrementing
+                }
+                catch (InvalidSequenceTokenException e)
+                {
+                    Debugging.SelfLog.WriteLine("Invalid sequence token.  Attempt: {0}  Error: {1}", attemptIndex, e);
+                    try
+                    {
+                        await UpdateLogStreamSequenceTokenAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attemptIndex, ex);
+
+                        // try again with a different log stream
+                        UpdateLogStreamName();
+                        await CreateLogStreamAsync();
+                        putLogEventsRequest.LogStreamName = logStreamName;
+                    }
+                    attemptIndex++; // don't think this is case we care about incrementing
+                }
+            }
+        }
+
+        /// <summary>
+        /// Emit a batch of log events, running asynchronously.
+        /// </summary>
+        /// <param name="events">The events to emit.</param>
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
             // We do not need synchronization in this method since it is only called from a single thread by the PeriodicBatchSink.
@@ -175,117 +334,9 @@ namespace Serilog.Sinks.AwsCloudWatch
 
                 while (logEvents.Count > 0)
                 {
-                    DateTime? first = null;
-                    var batchSize = 0;
-                    var batch = new List<InputLogEvent>();
+                    var batch = CreateBatch(logEvents);
 
-                    // build batch
-                    do
-                    {
-                        var @event = logEvents.Peek();
-                        if (!first.HasValue)
-                        {
-                            first = @event.Timestamp;
-                        }
-                        else if (@event.Timestamp.Subtract(first.Value) > MaxBatchEventSpan) // ensure batch spans no more than 24 hours
-                        {
-                            break;
-                        }
-
-                        if (batchSize + System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize < MaxLogEventBatchSize) // ensure < max batch size
-                        {
-                            batchSize += System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize;
-                            batch.Add(@event);
-                            logEvents.Dequeue();
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    } while (batch.Count < MaxLogEventBatchCount && logEvents.Count > 0); // ensure < max batch count
-
-                    // creates the request to upload a new event to CloudWatch
-                    PutLogEventsRequest putLogEventsRequest = new PutLogEventsRequest
-                    {
-                        LogGroupName = options.LogGroupName,
-                        LogStreamName = logStreamName,
-                        SequenceToken = nextSequenceToken,
-                        LogEvents = batch
-                    };
-
-                    var success = false;
-                    var attemptIndex = 0;
-                    while (!success && attemptIndex <= options.RetryAttempts)
-                    {
-                        try
-                        {
-                            // actually upload the event to CloudWatch
-                            var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putLogEventsRequest);
-
-                            // remember the next sequence token, which is required
-                            nextSequenceToken = putLogEventsResponse.NextSequenceToken;
-
-                            success = true;
-                        }
-                        catch (ServiceUnavailableException e)
-                        {
-                            // retry with back-off
-                            Debugging.SelfLog.WriteLine("Service unavailable.  Attempt: {0}  Error: {1}", attemptIndex, e);
-                            await Task.Delay(ErrorBackoffStartingInterval.Milliseconds * (int)Math.Pow(2, attemptIndex));
-                            attemptIndex++;
-                        }
-                        catch (InvalidParameterException e)
-                        {
-                            // cannot modify request without investigation
-                            Debugging.SelfLog.WriteLine("Invalid parameter.  Error: {0}", e);
-                            break;
-                        }
-                        catch (ResourceNotFoundException e)
-                        {
-                            // no retry with back-off because..
-                            //   if one of these fails, we get out of the loop.
-                            //   if they're both successful, we don't hit this case again.
-                            Debugging.SelfLog.WriteLine("Resource was not found.  Error: {0}", e);
-                            await CreateLogGroupAsync();
-                            await CreateLogStreamAsync();
-                        }
-                        catch (DataAlreadyAcceptedException e)
-                        {
-                            Debugging.SelfLog.WriteLine("Data already accepted.  Attempt: {0}  Error: {1}", attemptIndex, e);
-                            try
-                            {
-                                await UpdateLogStreamSequenceTokenAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attemptIndex, ex);
-
-                                // try again with a different log stream
-                                UpdateLogStreamName();
-                                await CreateLogStreamAsync();
-                                putLogEventsRequest.LogStreamName = logStreamName;
-                            }
-                            attemptIndex++; // don't think this is case we care about incrementing
-                        }
-                        catch (InvalidSequenceTokenException e)
-                        {
-                            Debugging.SelfLog.WriteLine("Invalid sequence token.  Attempt: {0}  Error: {1}", attemptIndex, e);
-                            try
-                            {
-                                await UpdateLogStreamSequenceTokenAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attemptIndex, ex);
-
-                                // try again with a different log stream
-                                UpdateLogStreamName();
-                                await CreateLogStreamAsync();
-                                putLogEventsRequest.LogStreamName = logStreamName;
-                            }
-                            attemptIndex++; // don't think this is case we care about incrementing
-                        }
-                    }
+                    await PublishBatchAsync(batch);
                 }
             }
             catch (Exception ex)
