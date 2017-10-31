@@ -182,9 +182,10 @@ namespace Serilog.Sinks.AwsCloudWatch
                     break;
                 }
 
-                if (batchSize + System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize < MaxLogEventBatchSize) // ensure < max batch size
+                var proposedBatchSize = batchSize + System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize;
+                if (proposedBatchSize < MaxLogEventBatchSize) // ensure < max batch size
                 {
-                    batchSize += System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize;
+                    batchSize = proposedBatchSize;
                     batch.Add(@event);
                     logEvents.Dequeue();
                 }
