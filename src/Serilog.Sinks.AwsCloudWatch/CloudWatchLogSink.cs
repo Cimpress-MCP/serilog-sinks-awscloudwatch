@@ -324,10 +324,11 @@ namespace Serilog.Sinks.AwsCloudWatch
                             @event =>
                             {
                                 var message = renderer.RenderLogEvent(@event);
-                                if (message.Length > MaxLogEventSize)
+                                var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
+                                if (messageLength > MaxLogEventSize)
                                 {
                                     // truncate event message
-                                    Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", message.Length);
+                                    Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
                                     message = message.Substring(0, MaxLogEventSize);
                                 }
                                 return new InputLogEvent
