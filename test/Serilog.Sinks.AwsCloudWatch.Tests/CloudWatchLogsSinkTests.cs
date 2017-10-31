@@ -51,9 +51,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
@@ -64,7 +64,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             Assert.Single(putLogEventsCalls);
 
-            var request = putLogEventsCalls.First().request;
+            var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
             Assert.Null(request.SequenceToken);
             Assert.Equal(10, request.LogEvents.Count);
@@ -110,9 +110,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
@@ -123,7 +123,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             Assert.Single(putLogEventsCalls);
 
-            var request = putLogEventsCalls.First().request;
+            var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
             Assert.Null(request.SequenceToken);
             Assert.Equal(10, request.LogEvents.Count);
@@ -156,9 +156,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
@@ -169,7 +169,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             Assert.Single(putLogEventsCalls);
 
-            var request = putLogEventsCalls.First().request;
+            var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
             Assert.Null(request.SequenceToken);
             Assert.Equal(10, request.LogEvents.Count);
@@ -209,9 +209,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
@@ -222,7 +222,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             Assert.Single(putLogEventsCalls);
 
-            var request = putLogEventsCalls.First().request;
+            var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
             Assert.Null(request.SequenceToken);
             Assert.Single(request.LogEvents);
@@ -258,9 +258,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken, DateTime datetime)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken, DateTime.UtcNow))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
@@ -274,15 +274,15 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             for (var i = 0; i < putLogEventsCalls.Count; i++)
             {
                 var call = putLogEventsCalls[i];
-                var request = call.request;
+                var request = call.Request;
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
                 Assert.Equal(events.Length / putLogEventsCalls.Count, request.LogEvents.Count);
 
                 // make sure the events are ordered
-                for (var index = 1; index < call.request.LogEvents.Count; index++)
+                for (var index = 1; index < call.Request.LogEvents.Count; index++)
                 {
-                    Assert.True(call.request.LogEvents.ElementAt(index).Timestamp > call.request.LogEvents.ElementAt(index - 1).Timestamp);
+                    Assert.True(call.Request.LogEvents.ElementAt(index).Timestamp >= call.Request.LogEvents.ElementAt(index - 1).Timestamp);
                 }
 
                 if (i == 0) // first call
@@ -325,9 +325,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken, DateTime datetime)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken, DateTime.UtcNow))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
@@ -341,7 +341,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             for (var i = 0; i < putLogEventsCalls.Count; i++)
             {
                 var call = putLogEventsCalls[i];
-                var request = call.request;
+                var request = call.Request;
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
 
@@ -387,9 +387,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken, DateTime datetime)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken, DateTime.UtcNow))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
@@ -403,7 +403,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             for (var i = 0; i < putLogEventsCalls.Count; i++)
             {
                 var call = putLogEventsCalls[i];
-                var request = call.request;
+                var request = call.Request;
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
 
@@ -449,9 +449,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken, DateTime datetime)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken, DateTime.UtcNow))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ThrowsAsync(new ServiceUnavailableException("unavailable"));
 
             await sink.EmitBatchAsync(events);
@@ -462,7 +462,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             for (var i = 1; i < putLogEventsCalls.Count; i++)
             {
                 // ensure retry attempts are throttled properly
-                var interval = putLogEventsCalls[i].datetime.Subtract(putLogEventsCalls[i - 1].datetime);
+                var interval = putLogEventsCalls[i].DateTime.Subtract(putLogEventsCalls[i - 1].DateTime);
                 Assert.True(interval.TotalMilliseconds >= (CloudWatchLogSink.ErrorBackoffStartingInterval.Milliseconds * Math.Pow(2, i - 1)), $"{interval.TotalMilliseconds} >= {CloudWatchLogSink.ErrorBackoffStartingInterval.Milliseconds * Math.Pow(2, i - 1)}");
                 lastInterval = interval;
             }
@@ -620,9 +620,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            var putLogEventsCalls = new List<(PutLogEventsRequest request, CancellationToken cancellationToken, DateTime datetime)>();
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
             client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add((putLogEventsRequest, cancellationToken, DateTime.UtcNow))) // keep track of the requests made
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
                 .ThrowsAsync(new InvalidParameterException("invalid param"));
 
             await sink.EmitBatchAsync(events);
@@ -789,6 +789,26 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var message = new string(Enumerable.Range(0, size).Select(_ => Alphabet[random.Next(0, Alphabet.Length)]).ToArray());
             Assert.Equal(size, message.Length);
             return message;
+        }
+
+        /// <summary>
+        /// Private class to keep track of calls made to CloudWatch Logs.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <remarks>
+        /// Necessary because ValueTuple isn't supported until .NET 4.7, and we want to test at .NET 4.5.2.
+        /// </remarks>
+        private class RequestCall<T>
+            where T : AmazonCloudWatchLogsRequest
+        {
+            public RequestCall(T request)
+            {
+                Request = request;
+                DateTime = DateTime.UtcNow;
+            }
+
+            public T Request { get; private set; }
+            public DateTime DateTime { get; private set; }
         }
     }
 }
