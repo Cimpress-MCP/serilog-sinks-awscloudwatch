@@ -16,9 +16,9 @@ namespace Serilog.Sinks.AwsCloudWatch
     public class CloudWatchLogSink : PeriodicBatchingSink
     {
         /// <summary>
-        /// The maximum log event size = 256 KB
+        /// The maximum log event size = 256 KB - 26 B
         /// </summary>
-        public const int MaxLogEventSize = 262144;
+        public const int MaxLogEventSize = 262118;
 
         /// <summary>
         /// The maximum log event batch size = 1 MB
