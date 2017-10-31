@@ -292,10 +292,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 else
                 {
                     Assert.NotNull(request.SequenceToken);
-
-                    // ensure calls are throttled
-                    var interval = call.datetime.Subtract(putLogEventsCalls[i - 1].datetime);
-                    Assert.True(interval >= CloudWatchLogSink.ThrottlingInterval);
                 }
             }
 
@@ -358,10 +354,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 {
                     Assert.NotNull(request.SequenceToken);
                     Assert.Single(request.LogEvents);
-
-                    // ensure calls are throttled
-                    var interval = call.datetime.Subtract(putLogEventsCalls[i - 1].datetime);
-                    Assert.True(interval >= CloudWatchLogSink.ThrottlingInterval);
                 }
             }
 
@@ -418,16 +410,12 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 if (i == 0) // first call
                 {
                     Assert.Null(request.SequenceToken);
-                    Assert.Equal(204, request.LogEvents.Count); // expect 204 of the 256 messages in the first batch
+                    Assert.Equal(203, request.LogEvents.Count); // expect 203 of the 256 messages in the first batch
                 }
                 else
                 {
                     Assert.NotNull(request.SequenceToken);
-                    Assert.Equal(52, request.LogEvents.Count); // expect 52 of the 256 messages in the second batch
-
-                    // ensure calls are throttled
-                    var interval = call.datetime.Subtract(putLogEventsCalls[i - 1].datetime);
-                    Assert.True(interval >= CloudWatchLogSink.ThrottlingInterval);
+                    Assert.Equal(53, request.LogEvents.Count); // expect 53 of the 256 messages in the second batch
                 }
             }
 

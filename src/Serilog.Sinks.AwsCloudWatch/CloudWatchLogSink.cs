@@ -12,9 +12,9 @@ namespace Serilog.Sinks.AwsCloudWatch
     public class CloudWatchLogSink : PeriodicBatchingSink
     {
         /// <summary>
-        /// The maximum log event size = 256 KB - 26 bytes
+        /// The maximum log event size = 256 KB
         /// </summary>
-        public const int MaxLogEventSize = 262118;
+        public const int MaxLogEventSize = 262144;
 
         /// <summary>
         /// The maximum log event batch size = 1 MB
@@ -27,14 +27,14 @@ namespace Serilog.Sinks.AwsCloudWatch
         public const int MaxLogEventBatchCount = 10000;
 
         /// <summary>
+        /// When in a batch, each message must have a buffer of 26 bytes 
+        /// </summary>
+        public const int MessageBufferSize = 26;
+
+        /// <summary>
         /// The maximum span of events in a batch
         /// </summary>
         public static readonly TimeSpan MaxBatchEventSpan = TimeSpan.FromDays(1);
-
-        /// <summary>
-        /// The span of time to throttle requests at
-        /// </summary>
-        public static readonly TimeSpan ThrottlingInterval = TimeSpan.FromMilliseconds(200);
 
         /// <summary>
         /// The span of time to backoff when an error occurs
@@ -138,12 +138,12 @@ namespace Serilog.Sinks.AwsCloudWatch
 
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
+            // We do not need synchronization in this method since it is only called from a single thread by the PeriodicBatchSink.
+
             if (events?.Count() == 0)
             {
                 return;
             }
-
-            // We do not need synchronization in this method since it is only called from a single thread by the PeriodicBatchSink.
 
             try
             {
@@ -196,9 +196,9 @@ namespace Serilog.Sinks.AwsCloudWatch
                             break;
                         }
 
-                        if (batchSize + @event.Message.Length < MaxLogEventBatchSize) // ensure < max batch size
+                        if (batchSize + System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize < MaxLogEventBatchSize) // ensure < max batch size
                         {
-                            batchSize += @event.Message.Length;
+                            batchSize += System.Text.Encoding.UTF8.GetByteCount(@event.Message) + MessageBufferSize;
                             batch.Add(@event);
                             logEvents.Dequeue();
                         }
@@ -209,7 +209,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                     } while (batch.Count < MaxLogEventBatchCount && logEvents.Count > 0); // ensure < max batch count
 
                     // creates the request to upload a new event to CloudWatch
-                    PutLogEventsRequest putEventsRequest = new PutLogEventsRequest
+                    PutLogEventsRequest putLogEventsRequest = new PutLogEventsRequest
                     {
                         LogGroupName = options.LogGroupName,
                         LogStreamName = logStreamName,
@@ -218,31 +218,25 @@ namespace Serilog.Sinks.AwsCloudWatch
                     };
 
                     var success = false;
-                    var attempt = 0;
-                    while (!success && attempt <= options.RetryAttempts)
+                    var attemptIndex = 0;
+                    while (!success && attemptIndex <= options.RetryAttempts)
                     {
                         try
                         {
                             // actually upload the event to CloudWatch
-                            var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putEventsRequest);
+                            var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putLogEventsRequest);
 
-                            if (putLogEventsResponse.HttpStatusCode.IsSuccessStatusCode())
-                            {
-                                // remember the next sequence token, which is required
-                                nextSequenceToken = putLogEventsResponse.NextSequenceToken;
+                            // remember the next sequence token, which is required
+                            nextSequenceToken = putLogEventsResponse.NextSequenceToken;
 
-                                // throttle
-                                await Task.Delay(ThrottlingInterval);
-
-                                success = true;
-                            }
+                            success = true;
                         }
                         catch (ServiceUnavailableException e)
                         {
                             // retry with back-off
-                            Debugging.SelfLog.WriteLine("Service unavailable.  Attempt: {0}  Error: {1}", attempt, e);
-                            await Task.Delay(ErrorBackoffStartingInterval.Milliseconds * (int)Math.Pow(2, attempt));
-                            attempt++;
+                            Debugging.SelfLog.WriteLine("Service unavailable.  Attempt: {0}  Error: {1}", attemptIndex, e);
+                            await Task.Delay(ErrorBackoffStartingInterval.Milliseconds * (int)Math.Pow(2, attemptIndex));
+                            attemptIndex++;
                         }
                         catch (InvalidParameterException e)
                         {
@@ -261,39 +255,39 @@ namespace Serilog.Sinks.AwsCloudWatch
                         }
                         catch (DataAlreadyAcceptedException e)
                         {
-                            Debugging.SelfLog.WriteLine("Data already accepted.  Attempt: {0}  Error: {1}", attempt, e);
+                            Debugging.SelfLog.WriteLine("Data already accepted.  Attempt: {0}  Error: {1}", attemptIndex, e);
                             try
                             {
                                 await UpdateLogStreamSequenceTokenAsync();
                             }
                             catch (Exception ex)
                             {
-                                Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attempt, ex);
+                                Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attemptIndex, ex);
 
                                 // try again with a different log stream
                                 UpdateLogStreamName();
                                 await CreateLogStreamAsync();
-                                putEventsRequest.LogStreamName = logStreamName;
+                                putLogEventsRequest.LogStreamName = logStreamName;
                             }
-                            attempt++; // don't think this is case we care about incrementing
+                            attemptIndex++; // don't think this is case we care about incrementing
                         }
                         catch (InvalidSequenceTokenException e)
                         {
-                            Debugging.SelfLog.WriteLine("Invalid sequence token.  Attempt: {0}  Error: {1}", attempt, e);
+                            Debugging.SelfLog.WriteLine("Invalid sequence token.  Attempt: {0}  Error: {1}", attemptIndex, e);
                             try
                             {
                                 await UpdateLogStreamSequenceTokenAsync();
                             }
                             catch (Exception ex)
                             {
-                                Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attempt, ex);
+                                Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attemptIndex, ex);
 
                                 // try again with a different log stream
                                 UpdateLogStreamName();
                                 await CreateLogStreamAsync();
-                                putEventsRequest.LogStreamName = logStreamName;
+                                putLogEventsRequest.LogStreamName = logStreamName;
                             }
-                            attempt++; // don't think this is case we care about incrementing
+                            attemptIndex++; // don't think this is case we care about incrementing
                         }
                     }
                 }
