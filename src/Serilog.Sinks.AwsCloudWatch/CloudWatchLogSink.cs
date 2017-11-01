@@ -107,10 +107,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                 {
                     CreateLogGroupRequest createRequest = new CreateLogGroupRequest(options.LogGroupName);
                     var createResponse = await cloudWatchClient.CreateLogGroupAsync(createRequest);
-                    if (!createResponse.HttpStatusCode.IsSuccessStatusCode())
-                    {
-                        throw new AwsCloudWatchSinkException($"Tried to create a log group, but failed with status code '{createResponse.HttpStatusCode}' and data '{createResponse.ResponseMetadata.FlattenedMetaData()}'.");
-                    }
                 }
             }
         }
@@ -136,11 +132,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                 LogStreamName = logStreamName
             };
             var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
-            if (!createLogStreamResponse.HttpStatusCode.IsSuccessStatusCode())
-            {
-                throw new AwsCloudWatchSinkException(
-                    $"Tried to create a log stream, but failed with status code '{createLogStreamResponse.HttpStatusCode}' and data '{createLogStreamResponse.ResponseMetadata.FlattenedMetaData()}'.");
-            }
         }
 
         /// <summary>
@@ -155,11 +146,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                 LogStreamNamePrefix = logStreamName
             };
             var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
-            if (!describeLogStreamsResponse.HttpStatusCode.IsSuccessStatusCode())
-            {
-                throw new AwsCloudWatchSinkException(
-                    $"Failed to describe log streams with status code '{describeLogStreamsResponse.HttpStatusCode}' and data '{describeLogStreamsResponse.ResponseMetadata.FlattenedMetaData()}'.");
-            }
             nextSequenceToken = describeLogStreamsResponse.NextToken;
         }
 
