@@ -156,14 +156,19 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <returns>A batch of events meeting defined restrictions.</returns>
         private List<InputLogEvent> CreateBatch(Queue<InputLogEvent> logEvents)
         {
-            DateTime first = logEvents.First().Timestamp;
+            DateTime? first = null;
             var batchSize = 0;
             var batch = new List<InputLogEvent>();
 
-            do
+            while (batch.Count < MaxLogEventBatchCount && logEvents.Count > 0) // ensure < max batch count
             {
                 var @event = logEvents.Peek();
-                if (@event.Timestamp.Subtract(first) > MaxBatchEventSpan) // ensure batch spans no more than 24 hours
+
+                if (!first.HasValue)
+                {
+                    first = @event.Timestamp;
+                }
+                else if (@event.Timestamp.Subtract(first.Value) > MaxBatchEventSpan) // ensure batch spans no more than 24 hours
                 {
                     break;
                 }
@@ -179,7 +184,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 {
                     break;
                 }
-            } while (batch.Count < MaxLogEventBatchCount && logEvents.Count > 0); // ensure < max batch count
+            } 
 
             return batch;
         }
