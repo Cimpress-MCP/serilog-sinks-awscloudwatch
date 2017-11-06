@@ -195,6 +195,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <param name="batch">The request.</param>
         private async Task PublishBatchAsync(List<InputLogEvent> batch)
         {
+            if (batch?.Count == 0)
+            {
+                return;
+            }
+
             // creates the request to upload a new event to CloudWatch
             PutLogEventsRequest putLogEventsRequest = new PutLogEventsRequest
             {
@@ -225,12 +230,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                     await Task.Delay(ErrorBackoffStartingInterval.Milliseconds * (int)Math.Pow(2, attemptIndex));
                     attemptIndex++;
                 }
-                catch (InvalidParameterException e)
-                {
-                    // cannot modify request without investigation
-                    Debugging.SelfLog.WriteLine("Invalid parameter.  Error: {0}", e);
-                    break;
-                }
                 catch (ResourceNotFoundException e)
                 {
                     // no retry with back-off because..
@@ -256,7 +255,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                         await CreateLogStreamAsync();
                         putLogEventsRequest.LogStreamName = logStreamName;
                     }
-                    attemptIndex++; // don't think this is case we care about incrementing
+                    attemptIndex++;
                 }
                 catch (InvalidSequenceTokenException e)
                 {
@@ -274,7 +273,12 @@ namespace Serilog.Sinks.AwsCloudWatch
                         await CreateLogStreamAsync();
                         putLogEventsRequest.LogStreamName = logStreamName;
                     }
-                    attemptIndex++; // don't think this is case we care about incrementing
+                    attemptIndex++;
+                }
+                catch (Exception e)
+                {
+                    Debugging.SelfLog.WriteLine("Unhandled exception.  Error: {0}", e);
+                    break;
                 }
             }
         }
