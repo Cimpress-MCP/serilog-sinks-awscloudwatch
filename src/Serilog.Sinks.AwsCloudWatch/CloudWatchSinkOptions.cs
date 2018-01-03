@@ -1,4 +1,5 @@
 using Serilog.Events;
+using Serilog.Formatting;
 using System;
 
 namespace Serilog.Sinks.AwsCloudWatch
@@ -65,11 +66,14 @@ namespace Serilog.Sinks.AwsCloudWatch
         public ILogStreamNameProvider LogStreamNameProvider { get; set; } = new DefaultLogStreamProvider();
 
         /// <summary>
-        /// A renderer to render Serilog's LogEvent. It defaults to <see cref="RenderedMessageLogEventRenderer"/>,
-        /// which just flattens the log event to a simple string, losing all formatted data.
-        /// It's recommended to implement a custom formatter like a simple JSON formatter with various parameters included.
+        /// OBSOLETE. Use <see cref="TextFormatter"/> instead.  If <see cref="TextFormatter"/> is set then this property will be ignored.
         /// </summary>
         public ILogEventRenderer LogEventRenderer { get; set; }
+
+        /// <summary>
+        /// Formatter used to convert log events to text.
+        /// </summary>
+        public ITextFormatter TextFormatter { get; set; }
 
         /// <summary>
         /// The number of attempts to retry in the case of a failure.

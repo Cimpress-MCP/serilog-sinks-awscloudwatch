@@ -1,9 +1,11 @@
 using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
 using Serilog.Events;
+using Serilog.Formatting;
 using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -31,7 +33,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         public const int MaxLogEventBatchCount = 10000;
 
         /// <summary>
-        /// When in a batch, each message must have a buffer of 26 bytes 
+        /// When in a batch, each message must have a buffer of 26 bytes
         /// </summary>
         public const int MessageBufferSize = 26;
 
@@ -51,6 +53,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private string logStreamName;
         private string nextSequenceToken;
         private readonly ILogEventRenderer renderer;
+        private readonly ITextFormatter formatter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudWatchLogSink"/> class.
@@ -67,6 +70,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
             this.renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
+            this.formatter = options.TextFormatter;
         }
 
         /// <summary>
@@ -184,7 +188,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 {
                     break;
                 }
-            } 
+            }
 
             return batch;
         }
@@ -314,7 +318,22 @@ namespace Serilog.Sinks.AwsCloudWatch
                         .Select( // transform
                             @event =>
                             {
-                                var message = renderer.RenderLogEvent(@event);
+                                string message = string.Empty;
+                                if (formatter != null)
+                                {
+                                    using (var writer = new StringWriter())
+                                    {
+                                        formatter.Format(@event, writer);
+                                        writer.Flush();
+                                        message = writer.ToString();
+                                    }
+                                }
+                                else
+                                {
+                                    // Kept for backwards compatability
+                                    message = renderer.RenderLogEvent(@event);
+                                }
+
                                 var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
                                 if (messageLength > MaxLogEventSize)
                                 {
