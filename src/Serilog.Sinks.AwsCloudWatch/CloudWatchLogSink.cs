@@ -69,6 +69,12 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
+
+            if (options.LogEventRenderer != null && options.TextFormatter != null)
+            {
+                throw new System.InvalidOperationException($"{nameof(options.LogEventRenderer)} and {nameof(options.TextFormatter)} cannot both be applied");
+            }
+
             this.renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
             this.formatter = options.TextFormatter;
         }
@@ -330,7 +336,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                                 }
                                 else
                                 {
-                                    // Kept for backwards compatability
                                     message = renderer.RenderLogEvent(@event);
                                 }
 

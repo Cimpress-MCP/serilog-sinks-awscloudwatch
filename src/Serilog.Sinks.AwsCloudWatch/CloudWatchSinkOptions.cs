@@ -66,12 +66,16 @@ namespace Serilog.Sinks.AwsCloudWatch
         public ILogStreamNameProvider LogStreamNameProvider { get; set; } = new DefaultLogStreamProvider();
 
         /// <summary>
-        /// OBSOLETE. Use <see cref="TextFormatter"/> instead.  If <see cref="TextFormatter"/> is set then this property will be ignored.
+        /// A renderer to render Serilog's LogEvent. It defaults to <see cref="RenderedMessageLogEventRenderer"/>,
+        /// which just flattens the log event to a simple string, losing all formatted data.
+        /// It's recommended to implement a custom formatter like a simple JSON formatter with various parameters included.
+        /// If <see cref="TextFormatter"/> and <see cref="LogEventRenderer"/> are both set then an <see cref="InvalidOperationException"/> will be thrown.
         /// </summary>
         public ILogEventRenderer LogEventRenderer { get; set; }
 
         /// <summary>
-        /// Formatter used to convert log events to text.
+        /// Standard Serilog formatter to convert log events to text instead of the AwsCloudWatch specific <see cref="LogEventRenderer"/>.
+        /// If <see cref="TextFormatter"/> and <see cref="LogEventRenderer"/> are both set then an <see cref="InvalidOperationException"/> will be thrown.
         /// </summary>
         public ITextFormatter TextFormatter { get; set; }
 
