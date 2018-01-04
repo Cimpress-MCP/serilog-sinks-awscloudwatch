@@ -44,7 +44,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <param name="regionName">The system name of the region to which to write.</param>
         /// <param name="logStreamNamePrefix">The log stream name prefix. Will use default log stream name if leave empty.</param>
         /// <param name="logEventRenderer">A renderer to render Serilog's LogEvent.</param>
-        /// <param name="textFormatter">A formatter to format Serilog's LogEvent instead of using logEventRenderer.</param>
+        /// <param name="formatter">A formatter to format Serilog's LogEvent instead of using logEventRenderer.</param>
         /// <param name="minimumLogEventLevel">The minimum log event level required in order to write an event to the sink.</param>
         /// <param name="batchSizeLimit">The batch size to be used when uploading logs to AWS CloudWatch.</param>
         /// <param name="period">The period to be used when a batch upload should be triggered.</param>
@@ -60,7 +60,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             string regionName = null,
             string logStreamNamePrefix = null,
             ILogEventRenderer logEventRenderer = null,
-            ITextFormatter textFormatter = null,
+            ITextFormatter formatter = null,
             LogEventLevel minimumLogEventLevel = CloudWatchSinkOptions.DefaultMinimumLogEventLevel,
             int batchSizeLimit = CloudWatchSinkOptions.DefaultBatchSizeLimit,
             TimeSpan? period = null,
@@ -77,7 +77,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 BatchSizeLimit = batchSizeLimit,
                 Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
                 LogEventRenderer = logEventRenderer,
-                TextFormatter = textFormatter,
+                TextFormatter = formatter,
                 CreateLogGroup = createLogGroup
             };
 
@@ -109,7 +109,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <param name="regionName">The system name of the region to which to write.</param>
         /// <param name="logStreamNamePrefix">The log stream name prefix. Will use default log stream name if leave empty.</param>
         /// <param name="logEventRenderer">A renderer to render Serilog's LogEvent.</param>
-        /// <param name="textFormatter">A formatter to format Serilog's LogEvent instead of using logEventRenderer.</param>
+        /// <param name="formatter">A formatter to format Serilog's LogEvent instead of using logEventRenderer.</param>
         /// <param name="minimumLogEventLevel">The minimum log event level required in order to write an event to the sink.</param>
         /// <param name="batchSizeLimit">The batch size to be used when uploading logs to AWS CloudWatch.</param>
         /// <param name="period">The period to be used when a batch upload should be triggered.</param>
@@ -121,7 +121,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             string regionName = null,
             string logStreamNamePrefix = null,
             ILogEventRenderer logEventRenderer = null,
-            ITextFormatter textFormatter = null,
+            ITextFormatter formatter = null,
             LogEventLevel minimumLogEventLevel = CloudWatchSinkOptions.DefaultMinimumLogEventLevel,
             int batchSizeLimit = CloudWatchSinkOptions.DefaultBatchSizeLimit,
             TimeSpan? period = null,
@@ -136,7 +136,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 BatchSizeLimit = batchSizeLimit,
                 Period = period ?? CloudWatchSinkOptions.DefaultPeriod,
                 LogEventRenderer = logEventRenderer,
-                TextFormatter = textFormatter,
+                TextFormatter = formatter,
                 CreateLogGroup = createLogGroup
             };
 
