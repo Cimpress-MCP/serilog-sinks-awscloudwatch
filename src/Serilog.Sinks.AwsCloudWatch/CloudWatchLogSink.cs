@@ -4,6 +4,7 @@ using Serilog.Events;
 using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -31,7 +32,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         public const int MaxLogEventBatchCount = 10000;
 
         /// <summary>
-        /// When in a batch, each message must have a buffer of 26 bytes 
+        /// When in a batch, each message must have a buffer of 26 bytes
         /// </summary>
         public const int MessageBufferSize = 26;
 
@@ -66,7 +67,15 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
-            this.renderer = options.LogEventRenderer ?? new RenderedMessageLogEventRenderer();
+
+            if (options.LogEventRenderer != null && options.TextFormatter != null)
+            {
+                throw new System.InvalidOperationException($"{nameof(options.LogEventRenderer)} and {nameof(options.TextFormatter)} cannot both be applied");
+            }
+
+            this.renderer = options.TextFormatter != null
+                ? new TextFormatterLogEventRenderer(options.TextFormatter)
+                : (options.LogEventRenderer ?? new RenderedMessageLogEventRenderer());
         }
 
         /// <summary>
@@ -184,7 +193,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                 {
                     break;
                 }
-            } 
+            }
 
             return batch;
         }
