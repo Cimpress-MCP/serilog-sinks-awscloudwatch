@@ -61,6 +61,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         public string LogGroupName { get; set; }
 
         /// <summary>
+        /// The respective LogEvent property associated to the groupName value.
+        /// </summary>
+        public string LogGroupPropertyKey { get; set; }
+
+        /// <summary>
         /// The log stream name to be used in AWS CloudWatch.
         /// </summary>
         public ILogStreamNameProvider LogStreamNameProvider { get; set; } = new DefaultLogStreamProvider();
@@ -83,5 +88,15 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The number of attempts to retry in the case of a failure.
         /// </summary>
         public byte RetryAttempts { get; set; } = DefaultRetryAttempts;
+
+        /// <summary>
+        /// Consider using some incoming event log information to build the log group name.
+        /// </summary>
+        public bool LogEventBasedLogGroupName { get; set; } = DefaultLogEventBasedLogGroupName;
+
+        /// <summary>
+        /// Default value for LogEventBasedLogGroupName.
+        /// </summary>
+        public const bool DefaultLogEventBasedLogGroupName = false;
     }
 }
