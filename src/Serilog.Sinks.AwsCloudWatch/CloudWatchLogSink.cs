@@ -81,7 +81,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <summary>
         /// Ensures the component is initialized.
         /// </summary>
-        private async Task EnsureInitializedAsync()
+        private async Task EnsureInitializedAsync(string groupName)
         {
             if (hasInit)
             {
@@ -89,11 +89,12 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
 
             // create log group
-            await CreateLogGroupAsync();
+            await CreateLogGroupAsync(groupName);
 
             // create log stream
             UpdateLogStreamName();
-            await CreateLogStreamAsync();
+
+            await CreateLogStreamAsync(groupName);
 
             hasInit = true;
         }
@@ -102,19 +103,19 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// Creates the log group.
         /// </summary>
         /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
-        private async Task CreateLogGroupAsync()
+        private async Task CreateLogGroupAsync(string groupName)
         {
             if (options.CreateLogGroup)
             {
                 // see if the log group already exists
-                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName };
+                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = groupName };
                 var logGroups = await cloudWatchClient.DescribeLogGroupsAsync(describeRequest);
-                var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.OrdinalIgnoreCase));
+                var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, groupName, StringComparison.OrdinalIgnoreCase));
 
                 // create log group if it doesn't exist
                 if (logGroup == null)
                 {
-                    CreateLogGroupRequest createRequest = new CreateLogGroupRequest(options.LogGroupName);
+                    CreateLogGroupRequest createRequest = new CreateLogGroupRequest(groupName);
                     var createResponse = await cloudWatchClient.CreateLogGroupAsync(createRequest);
                 }
             }
@@ -133,11 +134,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// Creates the log stream.
         /// </summary>
         /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
-        private async Task CreateLogStreamAsync()
+        private async Task CreateLogStreamAsync(string groupName)
         {
             CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest()
             {
-                LogGroupName = options.LogGroupName,
+                LogGroupName = groupName,
                 LogStreamName = logStreamName
             };
             var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
@@ -202,21 +203,16 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// Publish the batch of log events to AWS CloudWatch Logs.
         /// </summary>
         /// <param name="batch">The request.</param>
-        private async Task PublishBatchAsync(List<InputLogEvent> batch)
+        /// <param name="groupName">The group associated to the batch.</param>
+        private async Task PublishBatchAsync(PutLogEventsRequest putLogEventsRequest)
         {
-            if (batch?.Count == 0)
+            if (putLogEventsRequest == null)
+                return;
+
+            if (putLogEventsRequest.LogEvents?.Count == 0)
             {
                 return;
             }
-
-            // creates the request to upload a new event to CloudWatch
-            PutLogEventsRequest putLogEventsRequest = new PutLogEventsRequest
-            {
-                LogGroupName = options.LogGroupName,
-                LogStreamName = logStreamName,
-                SequenceToken = nextSequenceToken,
-                LogEvents = batch
-            };
 
             var success = false;
             var attemptIndex = 0;
@@ -245,8 +241,8 @@ namespace Serilog.Sinks.AwsCloudWatch
                     //   if one of these fails, we get out of the loop.
                     //   if they're both successful, we don't hit this case again.
                     Debugging.SelfLog.WriteLine("Resource was not found.  Error: {0}", e);
-                    await CreateLogGroupAsync();
-                    await CreateLogStreamAsync();
+                    await CreateLogGroupAsync(putLogEventsRequest.LogGroupName);
+                    await CreateLogStreamAsync(putLogEventsRequest.LogGroupName);
                 }
                 catch (DataAlreadyAcceptedException e)
                 {
@@ -261,7 +257,7 @@ namespace Serilog.Sinks.AwsCloudWatch
 
                         // try again with a different log stream
                         UpdateLogStreamName();
-                        await CreateLogStreamAsync();
+                        await CreateLogStreamAsync(putLogEventsRequest.LogGroupName);
                         putLogEventsRequest.LogStreamName = logStreamName;
                     }
                     attemptIndex++;
@@ -279,7 +275,7 @@ namespace Serilog.Sinks.AwsCloudWatch
 
                         // try again with a different log stream
                         UpdateLogStreamName();
-                        await CreateLogStreamAsync();
+                        await CreateLogStreamAsync(putLogEventsRequest.LogGroupName);
                         putLogEventsRequest.LogStreamName = logStreamName;
                     }
                     attemptIndex++;
@@ -289,6 +285,79 @@ namespace Serilog.Sinks.AwsCloudWatch
                     Debugging.SelfLog.WriteLine("Unhandled exception.  Error: {0}", e);
                     break;
                 }
+            }
+        }
+
+        /// <summary>
+        /// Creates a PutLogEventsRequest to send events to CloudWatch.
+        /// </summary>
+        /// <param name="groupName">Respective log group name for this batch.</param>
+        /// <param name="batch">Batch of log events.</param>
+        /// <returns></returns>
+        private PutLogEventsRequest CreateLogEventsRequest(string groupName, List<InputLogEvent> batch)
+        {
+            // creates the request to upload a new event to CloudWatch
+            return new PutLogEventsRequest
+            {
+                LogGroupName = groupName,
+                LogStreamName = logStreamName,
+                SequenceToken = nextSequenceToken,
+                LogEvents = batch
+            };
+        }
+
+        /// <summary>
+        /// Transforms Serilog's LogEvent into AWS CloudWatch InputLogEvent.
+        /// </summary>
+        /// <param name="event">The event itself.</param>
+        /// <returns></returns>
+        private InputLogEvent TransformToInputLogEvent(LogEvent @event)
+        {
+            var message = renderer.RenderLogEvent(@event);
+            var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
+            if (messageLength > MaxLogEventSize)
+            {
+                // truncate event message
+                Debugging.SelfLog.WriteLine("Truncating log event with length of {0}",
+                    messageLength);
+                message = message.Substring(0, MaxLogEventSize);
+            }
+            return new InputLogEvent
+            {
+                Message = message,
+                Timestamp = @event.Timestamp.UtcDateTime
+            };
+        }
+
+        /// <summary>
+        /// Responsible for the entire processing of events on it's own log group context, defined by the groupName.
+        /// </summary>
+        /// <param name="events"></param>
+        /// <param name="groupName"></param>
+        /// <returns></returns>
+        private async Task CreateAndProcessLogEvents(IEnumerable<LogEvent> events, string groupName)
+        {
+            var logEvents = new Queue<InputLogEvent>(events
+                .OrderBy(e => e.Timestamp)
+                .Select(TransformToInputLogEvent));
+
+            try
+            {
+                await EnsureInitializedAsync(groupName);
+            }
+            catch (Exception ex)
+            {
+                Debugging.SelfLog.WriteLine("Error initializing log stream. No logs will be sent to AWS CloudWatch. Exception was {0}.", ex);
+                return;
+            }
+
+            while (logEvents.Count > 0)
+            {
+                var batch = CreateBatch(logEvents);
+
+                var putLogEventsRequest = CreateLogEventsRequest(groupName, batch);
+
+                await PublishBatchAsync(putLogEventsRequest);
             }
         }
 
@@ -307,42 +376,30 @@ namespace Serilog.Sinks.AwsCloudWatch
 
             try
             {
-                await EnsureInitializedAsync();
-            }
-            catch (Exception ex)
-            {
-                Debugging.SelfLog.WriteLine("Error initializing log stream. No logs will be sent to AWS CloudWatch. Exception was {0}.", ex);
-                return;
-            }
-
-            try
-            {
-                var logEvents =
-                    new Queue<InputLogEvent>(events
-                        .OrderBy(e => e.Timestamp) // log events need to be ordered by timestamp within a single bulk upload to CloudWatch
-                        .Select( // transform
-                            @event =>
-                            {
-                                var message = renderer.RenderLogEvent(@event);
-                                var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
-                                if (messageLength > MaxLogEventSize)
-                                {
-                                    // truncate event message
-                                    Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
-                                    message = message.Substring(0, MaxLogEventSize);
-                                }
-                                return new InputLogEvent
-                                {
-                                    Message = message,
-                                    Timestamp = @event.Timestamp.UtcDateTime
-                                };
-                            }));
-
-                while (logEvents.Count > 0)
+                if (options.LogEventBasedLogGroupName)
                 {
-                    var batch = CreateBatch(logEvents);
+                    var logGroups = new Dictionary<string, List<LogEvent>>();
 
-                    await PublishBatchAsync(batch);
+                    foreach (var e in events)
+                    {
+                        var logGroupName = e.Properties[options.LogGroupPropertyKey].ToString().Replace("\"", "");
+
+                        if (logGroups.ContainsKey(logGroupName))
+                            logGroups[logGroupName].Add(e);
+                        else
+                        {
+                            logGroups.Add(logGroupName, new List<LogEvent>(){e});
+                        }
+                    }
+
+                    foreach (var group in logGroups)
+                    {
+                        await CreateAndProcessLogEvents(group.Value, group.Key);
+                    }
+                }
+                else
+                {
+                    await CreateAndProcessLogEvents(events, options.LogGroupName);
                 }
             }
             catch (Exception ex)

@@ -23,7 +23,8 @@ namespace Serilog.Sinks.AwsCloudWatch
             // validating input parameters
             if (loggerConfiguration == null) throw new ArgumentNullException(nameof(loggerConfiguration));
             if (options == null) throw new ArgumentNullException(nameof(options));
-            if (string.IsNullOrEmpty(options.LogGroupName)) throw new ArgumentException("options.LogGroupName");
+            if (string.IsNullOrEmpty(options.LogGroupName) && !options.LogEventBasedLogGroupName) throw new ArgumentException("options.LogGroupName");
+            if(options.LogEventBasedLogGroupName && string.IsNullOrEmpty(options.LogGroupPropertyKey)) throw new ArgumentException(nameof(options.LogGroupPropertyKey));
             if (cloudWatchClient == null) throw new ArgumentNullException(nameof(cloudWatchClient));
 
             // create the sink
