@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -53,13 +54,14 @@ namespace Serilog.Sinks.AwsCloudWatch
         private string nextSequenceToken;
         private readonly ILogEventRenderer renderer;
 
+        private readonly SemaphoreSlim syncObject = new SemaphoreSlim(1);
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudWatchLogSink"/> class.
         /// </summary>
         /// <param name="cloudWatchClient">The cloud watch client.</param>
         /// <param name="options">The options.</param>
-        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options)
-            : base(options.BatchSizeLimit, options.Period)
+        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options): base(options.BatchSizeLimit, options.Period)
         {
             if (options.BatchSizeLimit < 1)
             {
@@ -298,63 +300,70 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <param name="events">The events to emit.</param>
         protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
         {
-            // We do not need synchronization in this method since it is only called from a single thread by the PeriodicBatchSink.
-
-            if (events?.Count() == 0)
-            {
-                return;
-            }
-
             try
             {
-                await EnsureInitializedAsync();
-            }
-            catch (Exception ex)
-            {
-                Debugging.SelfLog.WriteLine("Error initializing log stream. No logs will be sent to AWS CloudWatch. Exception was {0}.", ex);
-                return;
-            }
+                await syncObject.WaitAsync();
 
-            try
-            {
-                var logEvents =
-                    new Queue<InputLogEvent>(events
-                        .OrderBy(e => e.Timestamp) // log events need to be ordered by timestamp within a single bulk upload to CloudWatch
-                        .Select( // transform
-                            @event =>
-                            {
-                                var message = renderer.RenderLogEvent(@event);
-                                var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
-                                if (messageLength > MaxLogEventSize)
-                                {
-                                    // truncate event message
-                                    Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
-                                    message = message.Substring(0, MaxLogEventSize);
-                                }
-                                return new InputLogEvent
-                                {
-                                    Message = message,
-                                    Timestamp = @event.Timestamp.UtcDateTime
-                                };
-                            }));
-
-                while (logEvents.Count > 0)
+                if (events?.Count() == 0)
                 {
-                    var batch = CreateBatch(logEvents);
-
-                    await PublishBatchAsync(batch);
+                    return;
                 }
-            }
-            catch (Exception ex)
-            {
+
                 try
                 {
-                    Debugging.SelfLog.WriteLine("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
+                    await EnsureInitializedAsync();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // we even failed to log to the trace logger - giving up trying to put something out
+                    Debugging.SelfLog.WriteLine("Error initializing log stream. No logs will be sent to AWS CloudWatch. Exception was {0}.", ex);
+                    return;
                 }
+
+                try
+                {
+                    var logEvents =
+                        new Queue<InputLogEvent>(events
+                            .OrderBy(e => e.Timestamp) // log events need to be ordered by timestamp within a single bulk upload to CloudWatch
+                            .Select( // transform
+                                @event =>
+                                {
+                                    var message = renderer.RenderLogEvent(@event);
+                                    var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
+                                    if (messageLength > MaxLogEventSize)
+                                    {
+                                        // truncate event message
+                                        Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
+                                        message = message.Substring(0, MaxLogEventSize);
+                                    }
+                                    return new InputLogEvent
+                                    {
+                                        Message = message,
+                                        Timestamp = @event.Timestamp.UtcDateTime
+                                    };
+                                }));
+
+                    while (logEvents.Count > 0)
+                    {
+                        var batch = CreateBatch(logEvents);
+
+                        await PublishBatchAsync(batch);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    try
+                    {
+                        Debugging.SelfLog.WriteLine("Error sending logs. No logs will be sent to AWS CloudWatch. Error was {0}", ex);
+                    }
+                    catch
+                    {
+                        // we even failed to log to the trace logger - giving up trying to put something out
+                    }
+                }
+            }
+            finally
+            {
+                syncObject.Release();
             }
         }
     }
