@@ -5,7 +5,7 @@
     <AssemblyTitle>AWS Cloud Watch Serilog Sink</AssemblyTitle>
     <Version>0.0.1</Version>
     <Authors>Markus Thurner</Authors>
-    <TargetFrameworks>net451;netstandard1.3</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.3</TargetFrameworks>
     <AssemblyName>Serilog.Sinks.AwsCloudWatch</AssemblyName>
     <PackageId>Serilog.Sinks.AwsCloudWatch</PackageId>
     <PackageTags>serilog;logging;dnx;coreclr;AWS;CloudWatch</PackageTags>
@@ -29,5 +29,5 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
   </ItemGroup>
-  
+
 </Project>
