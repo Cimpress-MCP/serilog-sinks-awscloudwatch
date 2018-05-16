@@ -17,8 +17,23 @@ var logGroupName = "myLogGroup/" + env.EnvironmentName;
 // customer renderer (optional, defaults to a simple rendered message of Serilog's LogEvent
 var renderer = new MyCustomRenderer();
 
-// options for the sink, specifying the log group name
-CloudWatchSinkOptions options = new CloudWatchSinkOptions {LogGroupName = logGroupName, LogEventRenderer = MyCustomRenderer};
+// options for the sink defaults in https://github.com/Cimpress-MCP/serilog-sinks-awscloudwatch/blob/master/src/Serilog.Sinks.AwsCloudWatch/CloudWatchSinkOptions.cs
+CloudWatchSinkOptions options = new CloudWatchSinkOptions
+{
+  LogGroupName = logGroupName,
+
+  // Pick on of the following
+  LogEventRenderer = MyCustomRenderer,
+  TextFormatter = MyCustomTextFormatter,
+  
+  // other defaults defaults
+  MinimumLogEventLevel = LogEventLevel.Information,
+  BatchSizeLimit = 100,
+  Period = TimeSpan.FromSeconds(10),
+  CreateLogGroup = true,
+  LogStreamNameProvider = new DefaultLogStreamProvider(),
+  RetryAttempts = 5
+};
 
 // setup AWS CloudWatch client
 AWSCredentials credentials = new BasicAWSCredentials(myAwsAccessKey, myAwsSecretKey);
