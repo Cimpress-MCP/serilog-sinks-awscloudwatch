@@ -22,7 +22,7 @@ CloudWatchSinkOptions options = new CloudWatchSinkOptions
 {
   LogGroupName = logGroupName,
 
-  // Pick on of the following
+  // Pick one of the following
   LogEventRenderer = MyCustomRenderer,
   TextFormatter = MyCustomTextFormatter,
   
