@@ -14,17 +14,17 @@ This Serilog Sink allows to log to [AWS CloudWatch](https://aws.amazon.com/cloud
 // name of the log group
 var logGroupName = "myLogGroup/" + env.EnvironmentName;
 
-// customer renderer (optional, defaults to a simple rendered message of Serilog's LogEvent
-var renderer = new MyCustomRenderer();
+// customer formatter
+var formatter = new MyCustomTextFormatter();
 
 // options for the sink defaults in https://github.com/Cimpress-MCP/serilog-sinks-awscloudwatch/blob/master/src/Serilog.Sinks.AwsCloudWatch/CloudWatchSinkOptions.cs
-CloudWatchSinkOptions options = new CloudWatchSinkOptions
+var options = new CloudWatchSinkOptions
 {
+  // the name of the CloudWatch Log group for logging
   LogGroupName = logGroupName,
 
-  // Pick one of the following
-  LogEventRenderer = MyCustomRenderer,
-  TextFormatter = MyCustomTextFormatter,
+  // the main formatter of the log event
+  TextFormatter = formatter,
   
   // other defaults defaults
   MinimumLogEventLevel = LogEventLevel.Information,
@@ -36,8 +36,7 @@ CloudWatchSinkOptions options = new CloudWatchSinkOptions
 };
 
 // setup AWS CloudWatch client
-AWSCredentials credentials = new BasicAWSCredentials(myAwsAccessKey, myAwsSecretKey);
-IAmazonCloudWatchLogs client = new AmazonCloudWatchLogsClient(credentials, myAwsRegion);
+var client = new AmazonCloudWatchLogsClient(myAwsRegion);
 
 // Attach the sink to the logger configuration
 Log.Logger = new LoggerConfiguration().MinimumLevel.Information()

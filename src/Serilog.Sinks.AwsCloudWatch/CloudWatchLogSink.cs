@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
+using Serilog.Formatting;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -52,7 +53,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private bool hasInit;
         private string logStreamName;
         private string nextSequenceToken;
-        private readonly ILogEventRenderer renderer;
+        private readonly ITextFormatter textFormatter;
 
         private readonly SemaphoreSlim syncObject = new SemaphoreSlim(1);
 
@@ -70,14 +71,12 @@ namespace Serilog.Sinks.AwsCloudWatch
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
 
-            if (options.LogEventRenderer != null && options.TextFormatter != null)
+            if (options.TextFormatter == null)
             {
-                throw new System.InvalidOperationException($"{nameof(options.LogEventRenderer)} and {nameof(options.TextFormatter)} cannot both be applied");
+                throw new System.ArgumentException($"{nameof(options.TextFormatter)} is required");
             }
 
-            this.renderer = options.TextFormatter != null
-                ? new TextFormatterLogEventRenderer(options.TextFormatter)
-                : (options.LogEventRenderer ?? new RenderedMessageLogEventRenderer());
+            textFormatter = options.TextFormatter;
         }
 
         /// <summary>
@@ -327,7 +326,13 @@ namespace Serilog.Sinks.AwsCloudWatch
                             .Select( // transform
                                 @event =>
                                 {
-                                    var message = renderer.RenderLogEvent(@event);
+                                    string message = null;
+                                    using (var writer = new StringWriter())
+                                    {
+                                        textFormatter.Format(@event, writer);
+                                        writer.Flush();
+                                        message = writer.ToString();
+                                    }
                                     var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
                                     if (messageLength > MaxLogEventSize)
                                     {
