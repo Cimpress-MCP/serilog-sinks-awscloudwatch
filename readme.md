@@ -44,6 +44,19 @@ Log.Logger = new LoggerConfiguration().MinimumLevel.Information()
   .WriteTo.AmazonCloudWatch(options, client)
   .CreateLogger();
 ```
+## Configuring Credentials
+AmazonCloudWatchLogsClient from the AWS SDK requires your AWS credentials.  Passing in credentials to the SDK is deprecated and will be removed from later versions.  To correctly associate your credentials with the library, please refer to [The Official AWS Reccomendation on C#](https://docs.aws.amazon.com/sdk-for-net/v3/developer-guide/net-dg-config-creds.html) for credentials management.  To reiterate here:
+* Preferred => Use IAM Profile set on your instance, machine, lambda function.
+* Create a credentials profile with your AWS credentials.
+* Use Environment Variables
+* Manually construct the credentials via:
+```csharp
+var options = new CredentialProfileOptions { AccessKey = "access_key", SecretKey = "secret_key" };
+var profile = new Amazon.Runtime.CredentialManagement.CredentialProfile("basic_profile", options);
+profile.Region = GetBySystemName("eu-west-1"); // OR RegionEndpoint.EUWest1
+var netSDKFile = new NetSDKCredentialsFile();
+netSDKFile.RegisterProfile(profile);
+```
 
 ## Troubleshooting
 
