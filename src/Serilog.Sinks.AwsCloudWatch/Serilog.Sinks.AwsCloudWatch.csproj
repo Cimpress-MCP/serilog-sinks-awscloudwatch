@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <Description>A Serilog sink that logs to AWS CloudWatch</Description>
     <AssemblyTitle>AWS Cloud Watch Serilog Sink</AssemblyTitle>
@@ -19,15 +18,12 @@
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="AWSSDK.CloudWatchLogs" Version="3.3.4.2" />
-    <PackageReference Include="Serilog" Version="2.5.0" />
-    <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="2.1.1" />
+    <PackageReference Include="AWSSDK.CloudWatchLogs" Version="3.3.4.10"/>
+    <PackageReference Include="Serilog" Version="2.5.0"/>
+    <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="2.1.1"/>
   </ItemGroup>
-
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">
-    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
+    <PackageReference Include="System.Net.NameResolution" Version="4.3.0"/>
   </ItemGroup>
-
 </Project>
