@@ -7,7 +7,7 @@ namespace Serilog.Sinks.AwsCloudWatch
     /// <summary>
     /// Options that allow configuring the Serilog Sink for AWS CloudWatch
     /// </summary>
-    public class CloudWatchSinkOptions
+    public class CloudWatchSinkOptions : ICloudWatchSinkOptions
     {
         /// <summary>
         /// The default minimum log event level required in order to write an event to the sink.

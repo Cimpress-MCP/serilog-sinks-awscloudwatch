@@ -49,7 +49,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         public static readonly TimeSpan ErrorBackoffStartingInterval = TimeSpan.FromMilliseconds(100);
 
         private readonly IAmazonCloudWatchLogs cloudWatchClient;
-        private readonly CloudWatchSinkOptions options;
+        private readonly ICloudWatchSinkOptions options;
         private bool hasInit;
         private string logStreamName;
         private string nextSequenceToken;
@@ -62,11 +62,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// </summary>
         /// <param name="cloudWatchClient">The cloud watch client.</param>
         /// <param name="options">The options.</param>
-        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, CloudWatchSinkOptions options): base(options.BatchSizeLimit, options.Period)
+        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options): base(options.BatchSizeLimit, options.Period)
         {
             if (options.BatchSizeLimit < 1)
             {
-                throw new ArgumentException($"{nameof(CloudWatchSinkOptions)}.{nameof(options.BatchSizeLimit)} must be a value greater than 0.");
+                throw new ArgumentException($"{nameof(ICloudWatchSinkOptions)}.{nameof(options.BatchSizeLimit)} must be a value greater than 0.");
             }
             this.cloudWatchClient = cloudWatchClient;
             this.options = options;
