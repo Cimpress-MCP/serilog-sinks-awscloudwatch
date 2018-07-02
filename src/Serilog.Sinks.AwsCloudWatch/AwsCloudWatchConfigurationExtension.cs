@@ -21,10 +21,20 @@ namespace Serilog.Sinks.AwsCloudWatch
         public static LoggerConfiguration AmazonCloudWatch(this LoggerSinkConfiguration loggerConfiguration, ICloudWatchSinkOptions options, IAmazonCloudWatchLogs cloudWatchClient)
         {
             // validating input parameters
-            if (loggerConfiguration == null) throw new ArgumentNullException(nameof(loggerConfiguration));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (string.IsNullOrEmpty(options.LogGroupName)) throw new ArgumentException("options.LogGroupName");
-            if (cloudWatchClient == null) throw new ArgumentNullException(nameof(cloudWatchClient));
+            if (loggerConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(loggerConfiguration));
+            }
+
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            if (cloudWatchClient == null)
+            {
+                throw new ArgumentNullException(nameof(cloudWatchClient));
+            }
 
             // create the sink
             var sink = new CloudWatchLogSink(cloudWatchClient, options);

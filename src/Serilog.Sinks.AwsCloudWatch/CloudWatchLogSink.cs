@@ -64,6 +64,10 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <param name="options">The options.</param>
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options): base(options.BatchSizeLimit, options.Period)
         {
+            if (string.IsNullOrEmpty(options?.LogGroupName))
+            {
+                throw new ArgumentException($"{nameof(ICloudWatchSinkOptions)}.{nameof(options.LogGroupName)} must be specified.");
+            }
             if (options.BatchSizeLimit < 1)
             {
                 throw new ArgumentException($"{nameof(ICloudWatchSinkOptions)}.{nameof(options.BatchSizeLimit)} must be a value greater than 0.");

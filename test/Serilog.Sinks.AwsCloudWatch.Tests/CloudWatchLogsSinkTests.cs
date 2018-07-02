@@ -35,7 +35,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions{ TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions{ TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -150,7 +150,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { CreateLogGroup = false, TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { CreateLogGroup = false, TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -198,7 +198,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var largeEventMessage = CreateMessage(CloudWatchLogSink.MaxLogEventSize + 1);
             var events = new LogEvent[]
@@ -250,7 +250,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 20)
                 .Select(i => // create multipe events with message length of 12
@@ -319,7 +319,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, CloudWatchLogSink.MaxLogEventBatchCount + 1)
                 .Select(i => 
@@ -383,7 +383,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 256) // 256 4 KB messages matches our max batch size, but we want to test a "less nice" scenario, so we'll create 256 5 KB messages
                 .Select(i =>
@@ -447,7 +447,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -497,7 +497,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -536,7 +536,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -583,7 +583,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -626,7 +626,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -667,7 +667,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -719,7 +719,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { LogStreamNameProvider = logStreamNameProvider.Object, TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { LogStreamNameProvider = logStreamNameProvider.Object, TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -771,7 +771,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
