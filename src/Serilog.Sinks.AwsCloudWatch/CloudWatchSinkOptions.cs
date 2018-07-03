@@ -7,7 +7,7 @@ namespace Serilog.Sinks.AwsCloudWatch
     /// <summary>
     /// Options that allow configuring the Serilog Sink for AWS CloudWatch
     /// </summary>
-    public class CloudWatchSinkOptions
+    public class CloudWatchSinkOptions : ICloudWatchSinkOptions
     {
         /// <summary>
         /// The default minimum log event level required in order to write an event to the sink.
@@ -65,17 +65,9 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// </summary>
         public ILogStreamNameProvider LogStreamNameProvider { get; set; } = new DefaultLogStreamProvider();
 
-        /// <summary>
-        /// A renderer to render Serilog's LogEvent. It defaults to <see cref="RenderedMessageLogEventRenderer"/>,
-        /// which just flattens the log event to a simple string, losing all formatted data.
-        /// It's recommended to implement a custom formatter like a simple JSON formatter with various parameters included.
-        /// If <see cref="TextFormatter"/> and <see cref="LogEventRenderer"/> are both set then an <see cref="InvalidOperationException"/> will be thrown.
-        /// </summary>
-        public ILogEventRenderer LogEventRenderer { get; set; }
 
         /// <summary>
-        /// Standard Serilog formatter to convert log events to text instead of the AwsCloudWatch specific <see cref="LogEventRenderer"/>.
-        /// If <see cref="TextFormatter"/> and <see cref="LogEventRenderer"/> are both set then an <see cref="InvalidOperationException"/> will be thrown.
+        /// Standard Serilog formatter to convert log events to text.
         /// </summary>
         public ITextFormatter TextFormatter { get; set; }
 
