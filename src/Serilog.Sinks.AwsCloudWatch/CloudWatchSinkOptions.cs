@@ -51,9 +51,9 @@ namespace Serilog.Sinks.AwsCloudWatch
         public TimeSpan Period { get; set; } = DefaultPeriod;
 
         /// <summary>
-        /// The number of days to retain the log events in the specified log group. Possible values are: 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, and 3653.
+        /// The number of days to retain the log events in the specified log group.
         /// </summary>
-        public TimeSpan? LogGroupRetention { get; set; }
+        public LogGroupRetentionPolicy LogGroupRetentionPolicy { get; set; } = LogGroupRetentionPolicy.Indefinitely;
 
         /// <summary>
         /// The log group name to be used in AWS CloudWatch.
@@ -80,5 +80,30 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The number of attempts to retry in the case of a failure.
         /// </summary>
         public byte RetryAttempts { get; set; } = DefaultRetryAttempts;
+    }
+
+    /// <summary>
+    /// The number of days to retain the log events in the specified log group.
+    /// <see href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html"/>
+    /// </summary>
+    public enum LogGroupRetentionPolicy {
+        Indefinitely,
+        Days_1 = 1,
+        Days_3 = 3,
+        Days_5 = 5,
+        Days_7 = 7,
+        Days_14 = 14,
+        Days_30 = 30,
+        Days_60 = 60,
+        Days_90 = 90,
+        Days_120 = 120,
+        Days_150 = 150,
+        Days_180 = 180,
+        Days_365 = 365,
+        Days_400 = 400,
+        Days_545 = 545,
+        Days_731 = 731,
+        Days_1827 = 1827,
+        Days_3653 = 3653,
     }
 }

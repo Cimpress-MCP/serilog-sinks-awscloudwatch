@@ -122,9 +122,10 @@ namespace Serilog.Sinks.AwsCloudWatch
                     CreateLogGroupRequest createRequest = new CreateLogGroupRequest(options.LogGroupName);
                     var createResponse = await cloudWatchClient.CreateLogGroupAsync(createRequest);
 
-                    if (options.LogGroupRetention.HasValue)
+                    // update the retention policy if a specific period is defined
+                    if (options.LogGroupRetentionPolicy != LogGroupRetentionPolicy.Indefinitely)
                     {
-                        PutRetentionPolicyRequest putRetentionRequest = new PutRetentionPolicyRequest(options.LogGroupName, options.LogGroupRetention.Value.Days);
+                        PutRetentionPolicyRequest putRetentionRequest = new PutRetentionPolicyRequest(options.LogGroupName, (int)options.LogGroupRetentionPolicy);
                         await cloudWatchClient.PutRetentionPolicyAsync(putRetentionRequest);
                     }
                 }
