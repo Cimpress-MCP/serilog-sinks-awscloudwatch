@@ -26,6 +26,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         TimeSpan Period { get; }
 
         /// <summary>
+        /// The number of days to retain the log events in the specified log group.
+        /// </summary>
+        LogGroupRetentionPolicy LogGroupRetentionPolicy { get; set; }
+
+        /// <summary>
         /// The log group name to be used in AWS CloudWatch.
         /// </summary>
         bool CreateLogGroup { get; }
