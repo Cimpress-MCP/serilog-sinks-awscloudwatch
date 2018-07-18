@@ -81,29 +81,4 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// </summary>
         public byte RetryAttempts { get; set; } = DefaultRetryAttempts;
     }
-
-    /// <summary>
-    /// The number of days to retain the log events in the specified log group.
-    /// <see href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html"/>
-    /// </summary>
-    public enum LogGroupRetentionPolicy {
-        Indefinitely,
-        Days_1 = 1,
-        Days_3 = 3,
-        Days_5 = 5,
-        Days_7 = 7,
-        Days_14 = 14,
-        Days_30 = 30,
-        Days_60 = 60,
-        Days_90 = 90,
-        Days_120 = 120,
-        Days_150 = 150,
-        Days_180 = 180,
-        Days_365 = 365,
-        Days_400 = 400,
-        Days_545 = 545,
-        Days_731 = 731,
-        Days_1827 = 1827,
-        Days_3653 = 3653,
-    }
 }
