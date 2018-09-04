@@ -62,7 +62,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// </summary>
         /// <param name="cloudWatchClient">The cloud watch client.</param>
         /// <param name="options">The options.</param>
-        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options): base(options.BatchSizeLimit, options.Period)
+        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options): base(options.BatchSizeLimit, options.Period, options.QueueSizeLimit)
         {
             if (string.IsNullOrEmpty(options?.LogGroupName))
             {

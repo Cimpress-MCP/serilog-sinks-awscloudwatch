@@ -20,6 +20,14 @@ namespace Serilog.Sinks.AwsCloudWatch
         public const int DefaultBatchSizeLimit = 100;
 
         /// <summary>
+        /// The default qeueue size to be used creating the queue used to hold batched log events.
+        /// Defaults to a very large number to retain backwards compatibitliy for old clients who
+        /// relied on unbounded queue sizes while still providing safe runtime behavior.
+        /// It is recommended to tune this queue size along with batchSize for your application logging use cases.
+        /// </summary>
+        public const int DefaultQueueSizeLimit = 10000;
+
+        /// <summary>
         /// The default to be used when deciding to create the log group or not
         /// </summary>
         public const bool DefaultCreateLogGroup = true;
@@ -44,6 +52,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The batch size to be used when uploading logs to AWS CloudWatch. Defaults to 100.
         /// </summary>
         public int BatchSizeLimit { get; set; } = DefaultBatchSizeLimit;
+
+        /// <summary>
+        /// The queue size to be used when holding batched log events in memory. Defaults to 10000.
+        /// </summary>
+        public int QueueSizeLimit { get; set; } = DefaultQueueSizeLimit;
 
         /// <summary>
         /// The period to be used when a batch upload should be triggered. Defaults to 10 seconds.

@@ -33,6 +33,7 @@ The preferred approach for configuration is to construct the necessary objects v
     // other defaults defaults
     MinimumLogEventLevel = LogEventLevel.Information,
     BatchSizeLimit = 100,
+    QueueSizeLimit = 10000,
     Period = TimeSpan.FromSeconds(10),
     CreateLogGroup = true,
     LogStreamNameProvider = new DefaultLogStreamProvider(),

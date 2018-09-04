@@ -21,6 +21,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         int BatchSizeLimit { get; }
 
         /// <summary>
+        /// The queue size to be used when holding batched log events in memory. Defaults to 10000.
+        /// </summary>
+        int QueueSizeLimit { get; }
+
+        /// <summary>
         /// The period to be used when a batch upload should be triggered. Defaults to 10 seconds.
         /// </summary>
         TimeSpan Period { get; }
