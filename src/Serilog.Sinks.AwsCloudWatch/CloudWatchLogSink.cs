@@ -1,14 +1,14 @@
 using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
 using Serilog.Events;
+using Serilog.Formatting;
 using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Threading;
-using Serilog.Formatting;
+using System.Threading.Tasks;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -52,6 +52,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private readonly ICloudWatchSinkOptions options;
         private bool hasInit;
         private string logStreamName;
+        private bool isUniqueLogStreamName;
         private string nextSequenceToken;
         private readonly ITextFormatter textFormatter;
 
@@ -62,7 +63,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// </summary>
         /// <param name="cloudWatchClient">The cloud watch client.</param>
         /// <param name="options">The options.</param>
-        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options): base(options.BatchSizeLimit, options.Period, options.QueueSizeLimit)
+        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options) : base(options.BatchSizeLimit, options.Period, options.QueueSizeLimit)
         {
             if (string.IsNullOrEmpty(options?.LogGroupName))
             {
@@ -138,21 +139,31 @@ namespace Serilog.Sinks.AwsCloudWatch
         private void UpdateLogStreamName()
         {
             logStreamName = options.LogStreamNameProvider.GetLogStreamName();
+            isUniqueLogStreamName = options.LogStreamNameProvider.IsUniqueName();
             nextSequenceToken = null; // always reset on a new stream
         }
 
         /// <summary>
-        /// Creates the log stream.
+        /// Creates the log stream if needed.
         /// </summary>
         /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task CreateLogStreamAsync()
         {
-            CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest()
+            // see if the log stream already exists
+            DescribeLogStreamsRequest describeRequest = new DescribeLogStreamsRequest { LogStreamNamePrefix = logStreamName };
+            var describeResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeRequest);
+            var logStream = describeResponse.LogStreams.FirstOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.OrdinalIgnoreCase));
+
+            // create log stream if needed
+            if (isUniqueLogStreamName || logStream == null)
             {
-                LogGroupName = options.LogGroupName,
-                LogStreamName = logStreamName
-            };
-            var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
+                CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest
+                {
+                    LogGroupName = options.LogGroupName,
+                    LogStreamName = logStreamName
+                };
+                var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
+            }
         }
 
         /// <summary>
