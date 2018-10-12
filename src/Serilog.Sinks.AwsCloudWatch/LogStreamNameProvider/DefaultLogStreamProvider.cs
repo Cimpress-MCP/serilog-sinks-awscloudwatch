@@ -11,10 +11,5 @@ namespace Serilog.Sinks.AwsCloudWatch
         {
             return $"{DateTime.UtcNow.ToString(DATETIME_FORMAT)}_{Dns.GetHostName()}_{Guid.NewGuid()}";
         }
-
-        public bool IsUniqueName()
-        {
-            return true;
-        }
     }
 }

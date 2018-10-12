@@ -52,7 +52,6 @@ namespace Serilog.Sinks.AwsCloudWatch
         private readonly ICloudWatchSinkOptions options;
         private bool hasInit;
         private string logStreamName;
-        private bool isUniqueLogStreamName;
         private string nextSequenceToken;
         private readonly ITextFormatter textFormatter;
 
@@ -139,7 +138,6 @@ namespace Serilog.Sinks.AwsCloudWatch
         private void UpdateLogStreamName()
         {
             logStreamName = options.LogStreamNameProvider.GetLogStreamName();
-            isUniqueLogStreamName = options.LogStreamNameProvider.IsUniqueName();
             nextSequenceToken = null; // always reset on a new stream
         }
 
@@ -154,8 +152,8 @@ namespace Serilog.Sinks.AwsCloudWatch
             var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
             var logStream = describeLogStreamsResponse.LogStreams.FirstOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.OrdinalIgnoreCase));
 
-            // create log stream if needed
-            if (isUniqueLogStreamName || logStream == null)
+            // create log stream if it doesn't exist
+            if (logStream == null)
             {
                 CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest
                 {

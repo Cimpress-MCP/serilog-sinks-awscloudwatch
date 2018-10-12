@@ -15,10 +15,5 @@ namespace Serilog.Sinks.AwsCloudWatch
         {
             return $"{_prefix}_{Guid.NewGuid()}";
         }
-
-        public bool IsUniqueName()
-        {
-            return true;
-        }
     }
 }
