@@ -150,9 +150,9 @@ namespace Serilog.Sinks.AwsCloudWatch
         private async Task CreateLogStreamAsync()
         {
             // see if the log stream already exists
-            DescribeLogStreamsRequest describeRequest = new DescribeLogStreamsRequest { LogStreamNamePrefix = logStreamName };
-            var describeResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeRequest);
-            var logStream = describeResponse.LogStreams.FirstOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.OrdinalIgnoreCase));
+            DescribeLogStreamsRequest describeLogStreamsRequest = new DescribeLogStreamsRequest { LogStreamNamePrefix = logStreamName };
+            var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
+            var logStream = describeLogStreamsResponse.LogStreams.FirstOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.OrdinalIgnoreCase));
 
             // create log stream if needed
             if (isUniqueLogStreamName || logStream == null)

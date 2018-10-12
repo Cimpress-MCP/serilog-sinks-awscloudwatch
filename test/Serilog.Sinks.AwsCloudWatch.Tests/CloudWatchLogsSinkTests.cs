@@ -2,16 +2,16 @@ using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
 using Moq;
 using Serilog.Events;
+using Serilog.Formatting;
 using Serilog.Parsing;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
-using Serilog.Formatting;
-using System.IO;
 
 namespace Serilog.Sinks.AwsCloudWatch.Tests
 {
@@ -35,7 +35,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions{ TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, 10)
                 .Select(_ => // create 10 events with message length of 12
@@ -52,6 +52,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
@@ -114,6 +117,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                     }
                 });
 
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
@@ -162,6 +168,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                         Enumerable.Empty<LogEventProperty>()))
                 .ToArray();
 
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
@@ -180,6 +189,78 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
+            Assert.Null(request.SequenceToken);
+            Assert.Equal(10, request.LogEvents.Count);
+            for (var i = 0; i < events.Length; i++)
+            {
+                Assert.Equal(events[i].MessageTemplate.Text, request.LogEvents.ElementAt(i).Message);
+            }
+
+            client.VerifyAll();
+        }
+
+        [Fact(DisplayName = "EmitBatchAsync - Single batch (log stream exists)")]
+        public async Task SingleBatch_LogStreamExists()
+        {
+            // expect a single batch of events to be posted to CloudWatch Logs
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
+            textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
+            var options = new CloudWatchSinkOptions { LogGroupName = Guid.NewGuid().ToString(), LogStreamNameProvider = new NonUniqueLogStreamNameProvider(), TextFormatter = textFormatterMock.Object };
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var events = Enumerable.Range(0, 10)
+                .Select(_ => // create 10 events with message length of 12
+                    new LogEvent(
+                        DateTimeOffset.UtcNow,
+                        LogEventLevel.Information,
+                        null,
+                        new MessageTemplateParser().Parse(CreateMessage(12)),
+                        Enumerable.Empty<LogEventProperty>()))
+                .ToArray();
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse
+                {
+                    HttpStatusCode = System.Net.HttpStatusCode.OK,
+                    LogGroups = new List<LogGroup>
+                    {
+                        new LogGroup
+                        {
+                            LogGroupName = options.LogGroupName
+                        }
+                    }
+                });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse
+                {
+                    HttpStatusCode = System.Net.HttpStatusCode.OK,
+                    LogStreams = new List<LogStream>
+                    {
+                        new LogStream
+                        {
+                            LogStreamName = options.LogStreamNameProvider.GetLogStreamName()
+                        }
+                    }
+                });
+
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
+            client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
+                .ReturnsAsync(new PutLogEventsResponse
+                {
+                    HttpStatusCode = System.Net.HttpStatusCode.OK,
+                    NextSequenceToken = Guid.NewGuid().ToString()
+                });
+
+            await sink.EmitBatchAsync(events);
+
+            Assert.Single(putLogEventsCalls);
+
+            var request = putLogEventsCalls.First().Request;
+            Assert.Equal(options.LogGroupName, request.LogGroupName);
+            Assert.Equal(options.LogStreamNameProvider.GetLogStreamName(), request.LogStreamName);
             Assert.Null(request.SequenceToken);
             Assert.Equal(10, request.LogEvents.Count);
             for (var i = 0; i < events.Length; i++)
@@ -216,6 +297,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
@@ -267,6 +351,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
@@ -322,7 +409,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
             var sink = new CloudWatchLogSink(client.Object, options);
             var events = Enumerable.Range(0, CloudWatchLogSink.MaxLogEventBatchCount + 1)
-                .Select(i => 
+                .Select(i =>
                     new LogEvent(
                         DateTimeOffset.UtcNow,
                         LogEventLevel.Information,
@@ -336,6 +423,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
@@ -401,6 +491,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
@@ -465,6 +558,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
@@ -485,7 +581,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 Assert.True(interval.TotalMilliseconds + 5 >= (CloudWatchLogSink.ErrorBackoffStartingInterval.Milliseconds * Math.Pow(2, i - 1)), $"{interval.TotalMilliseconds} >= {CloudWatchLogSink.ErrorBackoffStartingInterval.Milliseconds * Math.Pow(2, i - 1)}");
                 lastInterval = interval;
             }
-            
+
             client.VerifyAll();
         }
 
@@ -514,6 +610,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
@@ -553,6 +652,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
@@ -601,6 +703,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
             client.SetupSequence(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK })
                 .ThrowsAsync(new Exception("can't create a new log stream"));
@@ -643,6 +748,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
@@ -737,8 +845,10 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
-            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new Exception("no describe log stream"));
+            client.SetupSequence(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK })
+                .ThrowsAsync(new Exception("no describe log stream"))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
             client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
@@ -810,8 +920,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             client.VerifyAll();
         }
 
-
-
         /// <summary>
         /// Creates a message of random characters of the given size.
         /// </summary>
@@ -842,6 +950,22 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             public T Request { get; private set; }
             public DateTime DateTime { get; private set; }
+        }
+
+        /// <summary>
+        /// Provides a log stream name that can be reused.
+        /// </summary>
+        private class NonUniqueLogStreamNameProvider : ILogStreamNameProvider
+        {
+            public string GetLogStreamName()
+            {
+                return "NonUniqueName";
+            }
+
+            public bool IsUniqueName()
+            {
+                return false;
+            }
         }
     }
 }
