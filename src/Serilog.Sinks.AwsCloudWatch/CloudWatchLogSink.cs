@@ -1,14 +1,14 @@
 using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
 using Serilog.Events;
+using Serilog.Formatting;
 using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Threading;
-using Serilog.Formatting;
+using System.Threading.Tasks;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -62,7 +62,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// </summary>
         /// <param name="cloudWatchClient">The cloud watch client.</param>
         /// <param name="options">The options.</param>
-        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options): base(options.BatchSizeLimit, options.Period, options.QueueSizeLimit)
+        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options) : base(options.BatchSizeLimit, options.Period, options.QueueSizeLimit)
         {
             if (string.IsNullOrEmpty(options?.LogGroupName))
             {
@@ -112,7 +112,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             if (options.CreateLogGroup)
             {
                 // see if the log group already exists
-                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName };
+                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName, Limit = 1 };
                 var logGroups = await cloudWatchClient.DescribeLogGroupsAsync(describeRequest);
                 var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.OrdinalIgnoreCase));
 
@@ -142,17 +142,26 @@ namespace Serilog.Sinks.AwsCloudWatch
         }
 
         /// <summary>
-        /// Creates the log stream.
+        /// Creates the log stream if needed.
         /// </summary>
         /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task CreateLogStreamAsync()
         {
-            CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest()
+            // see if the log stream already exists
+            DescribeLogStreamsRequest describeLogStreamsRequest = new DescribeLogStreamsRequest { LogGroupName = options.LogGroupName, LogStreamNamePrefix = logStreamName, Limit = 1 };
+            var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
+            var logStream = describeLogStreamsResponse.LogStreams.FirstOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.OrdinalIgnoreCase));
+
+            // create log stream if it doesn't exist
+            if (logStream == null)
             {
-                LogGroupName = options.LogGroupName,
-                LogStreamName = logStreamName
-            };
-            var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
+                CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest
+                {
+                    LogGroupName = options.LogGroupName,
+                    LogStreamName = logStreamName
+                };
+                var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
+            }
         }
 
         /// <summary>
