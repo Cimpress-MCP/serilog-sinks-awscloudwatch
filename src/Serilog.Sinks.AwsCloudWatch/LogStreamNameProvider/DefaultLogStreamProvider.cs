@@ -7,10 +7,6 @@ namespace Serilog.Sinks.AwsCloudWatch
     {
         private readonly string DATETIME_FORMAT = "yyyy-MM-dd-hh-mm-ss";
 
-        public DefaultLogStreamProvider()
-        {
-        }
-
         public string GetLogStreamName()
         {
             return $"{DateTime.UtcNow.ToString(DATETIME_FORMAT)}_{Dns.GetHostName()}_{Guid.NewGuid()}";

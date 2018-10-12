@@ -808,7 +808,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             await sink.EmitBatchAsync(events);
 
             client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Once);
+            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Exactly(2));
             client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Once);
 
             client.VerifyAll();
@@ -864,7 +864,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             await sink.EmitBatchAsync(events);
 
             client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Once);
+            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Exactly(2));
             client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
 
             Assert.Equal(2, createLogStreamRequests.Count);
@@ -914,7 +914,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             await sink.EmitBatchAsync(events);
 
             client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Once);
+            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Exactly(2));
             client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Once);
 
             client.VerifyAll();

@@ -113,7 +113,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             if (options.CreateLogGroup)
             {
                 // see if the log group already exists
-                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName };
+                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName, Limit = 1 };
                 var logGroups = await cloudWatchClient.DescribeLogGroupsAsync(describeRequest);
                 var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.OrdinalIgnoreCase));
 
@@ -150,7 +150,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private async Task CreateLogStreamAsync()
         {
             // see if the log stream already exists
-            DescribeLogStreamsRequest describeLogStreamsRequest = new DescribeLogStreamsRequest { LogStreamNamePrefix = logStreamName };
+            DescribeLogStreamsRequest describeLogStreamsRequest = new DescribeLogStreamsRequest { LogGroupName = options.LogGroupName, LogStreamNamePrefix = logStreamName, Limit = 1 };
             var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
             var logStream = describeLogStreamsResponse.LogStreams.FirstOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.OrdinalIgnoreCase));
 
