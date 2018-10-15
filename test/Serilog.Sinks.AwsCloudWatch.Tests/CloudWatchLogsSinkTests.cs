@@ -961,11 +961,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             {
                 return "NonUniqueName";
             }
-
-            public bool IsUniqueName()
-            {
-                return false;
-            }
         }
     }
 }
