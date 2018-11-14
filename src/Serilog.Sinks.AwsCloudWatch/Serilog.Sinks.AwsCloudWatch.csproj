@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Description>A Serilog sink that logs to AWS CloudWatch</Description>
     <AssemblyTitle>AWS Cloud Watch Serilog Sink</AssemblyTitle>
@@ -17,7 +17,6 @@
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
-    <AssemblyVersion>0.0.1.0</AssemblyVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.CloudWatchLogs" Version="3.3.4.10" />
