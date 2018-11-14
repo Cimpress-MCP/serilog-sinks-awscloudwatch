@@ -38,6 +38,16 @@ namespace Serilog.Sinks.AwsCloudWatch
         public const byte DefaultRetryAttempts = 5;
 
         /// <summary>
+        /// By default, render output from MessageTemplate
+        /// </summary>
+        public const bool DefaultRenderMessageTemplate = false;
+
+        /// <summary>
+        /// Default property name to store render output of MessageTemplate
+        /// </summary>
+        public const string DefaultRenderMessageTemplatePropertyName = "Message";
+
+        /// <summary>
         /// The default period to be used when a batch upload should be triggered.
         /// </summary>
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(10);
@@ -93,5 +103,15 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The number of attempts to retry in the case of a failure.
         /// </summary>
         public byte RetryAttempts { get; set; } = DefaultRetryAttempts;
+
+        /// <summary>
+        /// Render out from MessageTemplate to own property
+        /// </summary>
+        public bool RenderMessageTemplate { get; set; } = DefaultRenderMessageTemplate;
+
+        /// <summary>
+        /// Name of property to store render output from MessageTemplate
+        /// </summary>
+        public string RenderMessageTemplatePropertyName { get; set; } = DefaultRenderMessageTemplatePropertyName;
     }
 }

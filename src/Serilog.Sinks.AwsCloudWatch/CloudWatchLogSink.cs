@@ -346,7 +346,10 @@ namespace Serilog.Sinks.AwsCloudWatch
                             .Select( // transform
                                 @event =>
                                 {
+                                    @event.EnrichFromOptions(options);
+
                                     string message = null;
+
                                     using (var writer = new StringWriter())
                                     {
                                         textFormatter.Format(@event, writer);

@@ -60,5 +60,15 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The number of attempts to retry in the case of a failure.
         /// </summary>
         byte RetryAttempts { get; }
+
+        /// <summary>
+        /// Render out from MessageTemplate to own property
+        /// </summary>
+        bool RenderMessageTemplate { get; }
+
+        /// <summary>
+        /// Name of property to store render output from MessageTemplate
+        /// </summary>
+        string RenderMessageTemplatePropertyName { get; }
     }
 }
