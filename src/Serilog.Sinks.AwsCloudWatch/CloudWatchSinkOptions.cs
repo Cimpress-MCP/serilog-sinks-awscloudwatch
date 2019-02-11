@@ -69,7 +69,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         public LogGroupRetentionPolicy LogGroupRetentionPolicy { get; set; } = LogGroupRetentionPolicy.Indefinitely;
 
         /// <summary>
-        /// The log group name to be used in AWS CloudWatch.
+        /// Whether a log group should be created in AWS CloudWatch when a log group with the specified LogGroupName does not exist.
         /// </summary>
         public bool CreateLogGroup { get; set; } = DefaultCreateLogGroup;
 
