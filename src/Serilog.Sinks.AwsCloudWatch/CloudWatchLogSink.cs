@@ -112,20 +112,20 @@ namespace Serilog.Sinks.AwsCloudWatch
             if (options.CreateLogGroup)
             {
                 // see if the log group already exists
-                DescribeLogGroupsRequest describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName, Limit = 1 };
+                var describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName, Limit = 1 };
                 var logGroups = await cloudWatchClient.DescribeLogGroupsAsync(describeRequest);
                 var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.OrdinalIgnoreCase));
 
                 // create log group if it doesn't exist
                 if (logGroup == null)
                 {
-                    CreateLogGroupRequest createRequest = new CreateLogGroupRequest(options.LogGroupName);
+                    var createRequest = new CreateLogGroupRequest(options.LogGroupName);
                     var createResponse = await cloudWatchClient.CreateLogGroupAsync(createRequest);
 
                     // update the retention policy if a specific period is defined
                     if (options.LogGroupRetentionPolicy != LogGroupRetentionPolicy.Indefinitely)
                     {
-                        PutRetentionPolicyRequest putRetentionRequest = new PutRetentionPolicyRequest(options.LogGroupName, (int)options.LogGroupRetentionPolicy);
+                        var putRetentionRequest = new PutRetentionPolicyRequest(options.LogGroupName, (int)options.LogGroupRetentionPolicy);
                         await cloudWatchClient.PutRetentionPolicyAsync(putRetentionRequest);
                     }
                 }
@@ -148,14 +148,14 @@ namespace Serilog.Sinks.AwsCloudWatch
         private async Task CreateLogStreamAsync()
         {
             // see if the log stream already exists
-            DescribeLogStreamsRequest describeLogStreamsRequest = new DescribeLogStreamsRequest { LogGroupName = options.LogGroupName, LogStreamNamePrefix = logStreamName, Limit = 1 };
+            var describeLogStreamsRequest = new DescribeLogStreamsRequest { LogGroupName = options.LogGroupName, LogStreamNamePrefix = logStreamName, Limit = 1 };
             var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
             var logStream = describeLogStreamsResponse.LogStreams.FirstOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.OrdinalIgnoreCase));
 
             // create log stream if it doesn't exist
             if (logStream == null)
             {
-                CreateLogStreamRequest createLogStreamRequest = new CreateLogStreamRequest
+                var createLogStreamRequest = new CreateLogStreamRequest
                 {
                     LogGroupName = options.LogGroupName,
                     LogStreamName = logStreamName
@@ -170,7 +170,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task UpdateLogStreamSequenceTokenAsync()
         {
-            DescribeLogStreamsRequest describeLogStreamsRequest = new DescribeLogStreamsRequest
+            var describeLogStreamsRequest = new DescribeLogStreamsRequest
             {
                 LogGroupName = options.LogGroupName,
                 LogStreamNamePrefix = logStreamName
@@ -231,7 +231,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
 
             // creates the request to upload a new event to CloudWatch
-            PutLogEventsRequest putLogEventsRequest = new PutLogEventsRequest
+            var putLogEventsRequest = new PutLogEventsRequest
             {
                 LogGroupName = options.LogGroupName,
                 LogStreamName = logStreamName,
