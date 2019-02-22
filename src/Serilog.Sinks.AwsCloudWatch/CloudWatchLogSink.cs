@@ -168,6 +168,10 @@ namespace Serilog.Sinks.AwsCloudWatch
                 };
                 var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
             }
+            else
+            {
+                nextSequenceToken = logStream.UploadSequenceToken;
+            }
         }
 
         /// <summary>
