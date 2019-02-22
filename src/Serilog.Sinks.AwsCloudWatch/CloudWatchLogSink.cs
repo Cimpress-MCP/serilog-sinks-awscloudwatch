@@ -112,9 +112,17 @@ namespace Serilog.Sinks.AwsCloudWatch
             if (options.CreateLogGroup)
             {
                 // see if the log group already exists
-                var describeRequest = new DescribeLogGroupsRequest { LogGroupNamePrefix = options.LogGroupName, Limit = 1 };
-                var logGroups = await cloudWatchClient.DescribeLogGroupsAsync(describeRequest);
-                var logGroup = logGroups.LogGroups.FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.OrdinalIgnoreCase));
+                var describeRequest = new DescribeLogGroupsRequest
+                {
+                    LogGroupNamePrefix = options.LogGroupName
+                };
+
+                var logGroups = await cloudWatchClient
+                    .DescribeLogGroupsAsync(describeRequest);
+
+                var logGroup = logGroups
+                    .LogGroups
+                    .FirstOrDefault(lg => string.Equals(lg.LogGroupName, options.LogGroupName, StringComparison.Ordinal));
 
                 // create log group if it doesn't exist
                 if (logGroup == null)
@@ -148,9 +156,18 @@ namespace Serilog.Sinks.AwsCloudWatch
         private async Task CreateLogStreamAsync()
         {
             // see if the log stream already exists
-            var describeLogStreamsRequest = new DescribeLogStreamsRequest { LogGroupName = options.LogGroupName, LogStreamNamePrefix = logStreamName, Limit = 1 };
-            var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
-            var logStream = describeLogStreamsResponse.LogStreams.FirstOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.OrdinalIgnoreCase));
+            var describeLogStreamsRequest = new DescribeLogStreamsRequest
+            {
+                LogGroupName = options.LogGroupName,
+                LogStreamNamePrefix = logStreamName
+            };
+
+            var describeLogStreamsResponse = await cloudWatchClient
+                .DescribeLogStreamsAsync(describeLogStreamsRequest);
+
+            var logStream = describeLogStreamsResponse
+                .LogStreams
+                .SingleOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.Ordinal));
 
             // create log stream if it doesn't exist
             if (logStream == null)
