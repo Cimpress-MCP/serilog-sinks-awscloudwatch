@@ -296,6 +296,8 @@ namespace Serilog.Sinks.AwsCloudWatch
                     try
                     {
                         await UpdateLogStreamSequenceTokenAsync();
+
+                        putLogEventsRequest.SequenceToken = nextSequenceToken;
                     }
                     catch (Exception ex)
                     {
@@ -314,6 +316,8 @@ namespace Serilog.Sinks.AwsCloudWatch
                     try
                     {
                         await UpdateLogStreamSequenceTokenAsync();
+
+                        putLogEventsRequest.SequenceToken = nextSequenceToken;
                     }
                     catch (Exception ex)
                     {
