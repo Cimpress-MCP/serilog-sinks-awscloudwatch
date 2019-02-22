@@ -156,18 +156,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private async Task CreateLogStreamAsync()
         {
             // see if the log stream already exists
-            var describeLogStreamsRequest = new DescribeLogStreamsRequest
-            {
-                LogGroupName = options.LogGroupName,
-                LogStreamNamePrefix = logStreamName
-            };
-
-            var describeLogStreamsResponse = await cloudWatchClient
-                .DescribeLogStreamsAsync(describeLogStreamsRequest);
-
-            var logStream = describeLogStreamsResponse
-                .LogStreams
-                .SingleOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.Ordinal));
+            var logStream = await GetLogStreamAsync();
 
             // create log stream if it doesn't exist
             if (logStream == null)
@@ -187,13 +176,28 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task UpdateLogStreamSequenceTokenAsync()
         {
+            var logStream = await GetLogStreamAsync();
+            nextSequenceToken = logStream?.UploadSequenceToken;
+        }
+
+        /// <summary>
+        /// Attempts to get the log stream defined by <see cref="logStreamName"/>.
+        /// </summary>
+        /// <returns>The matching log stream or null if no match can be found.</returns>
+        private async Task<LogStream> GetLogStreamAsync()
+        {
             var describeLogStreamsRequest = new DescribeLogStreamsRequest
             {
                 LogGroupName = options.LogGroupName,
                 LogStreamNamePrefix = logStreamName
             };
-            var describeLogStreamsResponse = await cloudWatchClient.DescribeLogStreamsAsync(describeLogStreamsRequest);
-            nextSequenceToken = describeLogStreamsResponse.NextToken;
+
+            var describeLogStreamsResponse = await cloudWatchClient
+                .DescribeLogStreamsAsync(describeLogStreamsRequest);
+
+            return describeLogStreamsResponse
+                .LogStreams
+                .SingleOrDefault(ls => string.Equals(ls.LogStreamName, logStreamName, StringComparison.Ordinal));
         }
 
         /// <summary>
