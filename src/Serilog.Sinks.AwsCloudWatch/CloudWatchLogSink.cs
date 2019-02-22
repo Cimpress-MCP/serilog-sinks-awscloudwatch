@@ -255,21 +255,21 @@ namespace Serilog.Sinks.AwsCloudWatch
                 return;
             }
 
-            // creates the request to upload a new event to CloudWatch
-            var putLogEventsRequest = new PutLogEventsRequest
-            {
-                LogGroupName = options.LogGroupName,
-                LogStreamName = logStreamName,
-                SequenceToken = nextSequenceToken,
-                LogEvents = batch
-            };
-
             var success = false;
             var attemptIndex = 0;
             while (!success && attemptIndex <= options.RetryAttempts)
             {
                 try
                 {
+                    // creates the request to upload a new event to CloudWatch
+                    var putLogEventsRequest = new PutLogEventsRequest
+                    {
+                        LogGroupName = options.LogGroupName,
+                        LogStreamName = logStreamName,
+                        SequenceToken = nextSequenceToken,
+                        LogEvents = batch
+                    };
+
                     // actually upload the event to CloudWatch
                     var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putLogEventsRequest);
 
@@ -300,8 +300,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                     try
                     {
                         await UpdateLogStreamSequenceTokenAsync();
-
-                        putLogEventsRequest.SequenceToken = nextSequenceToken;
                     }
                     catch (Exception ex)
                     {
@@ -310,7 +308,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                         // try again with a different log stream
                         UpdateLogStreamName();
                         await CreateLogStreamAsync();
-                        putLogEventsRequest.LogStreamName = logStreamName;
                     }
                     attemptIndex++;
                 }
@@ -320,8 +317,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                     try
                     {
                         await UpdateLogStreamSequenceTokenAsync();
-
-                        putLogEventsRequest.SequenceToken = nextSequenceToken;
                     }
                     catch (Exception ex)
                     {
@@ -330,7 +325,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                         // try again with a different log stream
                         UpdateLogStreamName();
                         await CreateLogStreamAsync();
-                        putLogEventsRequest.LogStreamName = logStreamName;
                     }
                     attemptIndex++;
                 }
