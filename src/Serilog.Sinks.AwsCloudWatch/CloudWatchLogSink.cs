@@ -379,8 +379,8 @@ namespace Serilog.Sinks.AwsCloudWatch
                                         sb.CopyTo(0, message, 0, message.Length);
                                     }
 
-                                    var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
-                                    if (messageLength > MaxLogEventSize)
+                                    var messageLength = message.Length;
+                                    if (System.Text.Encoding.UTF8.GetByteCount(message) > MaxLogEventSize)
                                     {
                                         // truncate event message
                                         Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
