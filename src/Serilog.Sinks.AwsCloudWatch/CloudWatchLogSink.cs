@@ -369,23 +369,33 @@ namespace Serilog.Sinks.AwsCloudWatch
                             .Select( // transform
                                 @event =>
                                 {
-                                    string message = null;
+                                    char[] message;
                                     using (var writer = new StringWriter())
                                     {
                                         textFormatter.Format(@event, writer);
                                         writer.Flush();
-                                        message = writer.ToString();
+                                        var sb = writer.GetStringBuilder();
+                                        message = new char[sb.Length];
+                                        sb.CopyTo(0, message, 0, message.Length);
                                     }
+
                                     var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
                                     if (messageLength > MaxLogEventSize)
                                     {
                                         // truncate event message
                                         Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
-                                        message = message.Substring(0, MaxLogEventSize);
+                                        var proposedLength = MaxLogEventSize;
+                                        int bytesDelta = MaxLogEventSize - System.Text.Encoding.UTF8.GetByteCount(message, 0, proposedLength);
+                                        while (bytesDelta < 0)
+                                        {
+                                            proposedLength += Math.Min(bytesDelta / 4, -1); // Maximum UTF8 char size is 32 bits
+                                            bytesDelta = MaxLogEventSize - System.Text.Encoding.UTF8.GetByteCount(message, 0, proposedLength);
+                                        }
+                                        messageLength = proposedLength;
                                     }
                                     return new InputLogEvent
                                     {
-                                        Message = message,
+                                        Message = new String(message, 0, messageLength),
                                         Timestamp = @event.Timestamp.UtcDateTime
                                     };
                                 }));

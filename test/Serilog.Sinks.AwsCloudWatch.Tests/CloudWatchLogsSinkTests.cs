@@ -1,4 +1,4 @@
-using Amazon.CloudWatchLogs;
+﻿using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
 using Moq;
 using Serilog.Events;
@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -18,6 +19,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
     public class CloudWatchLogsSinkTests
     {
         private const string Alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        private const string NonASCIIAlphabet = "ȀȁȂȃȄȅȆȇȈȉȊȋ";
         private static Random random = new Random((int)DateTime.Now.Ticks);
 
         public CloudWatchLogsSinkTests(ITestOutputHelper output)
@@ -321,7 +323,64 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             Assert.Equal(options.LogGroupName, request.LogGroupName);
             Assert.Null(request.SequenceToken);
             Assert.Single(request.LogEvents);
+            Assert.Equal(CloudWatchLogSink.MaxLogEventSize, Encoding.UTF8.GetByteCount(request.LogEvents.First().Message));
             Assert.Equal(largeEventMessage.Substring(0, CloudWatchLogSink.MaxLogEventSize), request.LogEvents.First().Message);
+
+            client.VerifyAll();
+        }
+
+        [Fact(DisplayName = "EmitBatchAsync - Large message with non-ASCII characters")]
+        public async Task LargeMessageNonASCII()
+        {
+            // expect an event with a length beyond the MaxLogEventSize will be truncated to the MaxLogEventSize
+
+            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
+            var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
+            textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
+            var sink = new CloudWatchLogSink(client.Object, options);
+            var largeEventMessage = CreateMessage(CloudWatchLogSink.MaxLogEventSize + 1, NonASCIIAlphabet);
+            var events = new LogEvent[]
+            {
+                new LogEvent(
+                    DateTimeOffset.UtcNow,
+                    LogEventLevel.Information,
+                    null,
+                    new MessageTemplateParser().Parse(largeEventMessage),
+                    Enumerable.Empty<LogEventProperty>())
+            };
+
+            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
+
+            var putLogEventsCalls = new List<RequestCall<PutLogEventsRequest>>();
+            client.Setup(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
+                .Callback<PutLogEventsRequest, CancellationToken>((putLogEventsRequest, cancellationToken) => putLogEventsCalls.Add(new RequestCall<PutLogEventsRequest>(putLogEventsRequest))) // keep track of the requests made
+                .ReturnsAsync(new PutLogEventsResponse
+                {
+                    HttpStatusCode = System.Net.HttpStatusCode.OK,
+                    NextSequenceToken = Guid.NewGuid().ToString()
+                });
+
+            await sink.EmitBatchAsync(events);
+
+            Assert.Single(putLogEventsCalls);
+
+            var request = putLogEventsCalls.First().Request;
+            Assert.Equal(options.LogGroupName, request.LogGroupName);
+            Assert.Null(request.SequenceToken);
+            Assert.Single(request.LogEvents);
+            Assert.Equal(CloudWatchLogSink.MaxLogEventSize, Encoding.UTF8.GetByteCount(request.LogEvents.First().Message));
+            Assert.Equal(largeEventMessage.Substring(0, request.LogEvents.First().Message.Length), request.LogEvents.First().Message);
 
             client.VerifyAll();
         }
@@ -925,9 +984,9 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
         /// </summary>
         /// <param name="size">The size of the message.</param>
         /// <returns>A string consisting of random characters from the alphabet.</returns>
-        private string CreateMessage(int size)
+        private string CreateMessage(int size, string alphabet = Alphabet)
         {
-            var message = new string(Enumerable.Range(0, size).Select(_ => Alphabet[random.Next(0, Alphabet.Length)]).ToArray());
+            var message = new string(Enumerable.Range(0, size).Select(_ => alphabet[random.Next(0, alphabet.Length)]).ToArray());
             Assert.Equal(size, message.Length);
             return message;
         }
