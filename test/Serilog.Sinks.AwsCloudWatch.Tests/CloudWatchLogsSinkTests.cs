@@ -337,7 +337,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
             var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
             textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
+            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name", UnicodeAwareTruncate = true };
             var sink = new CloudWatchLogSink(client.Object, options);
             var largeEventMessage = CreateMessage(CloudWatchLogSink.MaxLogEventSize + 1, NonASCIIAlphabet);
             var events = new LogEvent[]

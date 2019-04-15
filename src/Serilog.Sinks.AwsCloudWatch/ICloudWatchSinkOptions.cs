@@ -60,5 +60,10 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The number of attempts to retry in the case of a failure.
         /// </summary>
         byte RetryAttempts { get; }
+
+        /// <summary>
+        /// Whether unicode awareness needs to be used when truncating long messages that exceeds CloudWatch limit.
+        /// </summary>
+        bool UnicodeAwareTruncate { get; set; }
     }
 }

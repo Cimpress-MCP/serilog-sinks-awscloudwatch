@@ -43,6 +43,11 @@ namespace Serilog.Sinks.AwsCloudWatch
         public static readonly TimeSpan DefaultPeriod = TimeSpan.FromSeconds(10);
 
         /// <summary>
+        /// The default to be used when truncating long messages that exceeds CloudWatch limit.
+        /// </summary>
+        public const bool DefaultUnicodeAwareTruncate = false;
+
+        /// <summary>
         /// The minimum log event level required in order to write an event to the sink. Defaults
         /// to <see cref="LogEventLevel.Information"/>.
         /// </summary>
@@ -93,5 +98,10 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// The number of attempts to retry in the case of a failure.
         /// </summary>
         public byte RetryAttempts { get; set; } = DefaultRetryAttempts;
+
+        /// <summary>
+        /// Whether unicode awareness needs to be used when truncating long messages that exceeds CloudWatch limit.
+        /// </summary>
+        public bool UnicodeAwareTruncate { get; set; } = DefaultUnicodeAwareTruncate;
     }
 }
