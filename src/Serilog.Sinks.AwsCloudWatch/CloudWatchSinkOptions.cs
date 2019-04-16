@@ -1,5 +1,6 @@
 using Serilog.Events;
 using Serilog.Formatting;
+using Serilog.Sinks.AwsCloudWatch.EventTransformer;
 using System;
 
 namespace Serilog.Sinks.AwsCloudWatch
@@ -100,8 +101,8 @@ namespace Serilog.Sinks.AwsCloudWatch
         public byte RetryAttempts { get; set; } = DefaultRetryAttempts;
 
         /// <summary>
-        /// Whether unicode awareness needs to be used when truncating long messages that exceeds CloudWatch limit.
+        /// Event Transformer handling transformation of Serilog event to CloudWatch one.
         /// </summary>
-        public bool UnicodeAwareTruncate { get; set; } = DefaultUnicodeAwareTruncate;
+        public IEventTransformer EventTransformer { get; set; } = new DefaultEventTransformer();
     }
 }

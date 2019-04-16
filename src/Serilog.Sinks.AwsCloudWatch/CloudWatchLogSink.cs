@@ -2,6 +2,7 @@ using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
 using Serilog.Events;
 using Serilog.Formatting;
+using Serilog.Sinks.AwsCloudWatch.EventTransformer;
 using Serilog.Sinks.PeriodicBatching;
 using System;
 using System.Collections.Generic;
@@ -54,6 +55,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private string logStreamName;
         private string nextSequenceToken;
         private readonly ITextFormatter textFormatter;
+        private readonly IEventTransformer eventTransformer;
 
         private readonly SemaphoreSlim syncObject = new SemaphoreSlim(1);
 
@@ -80,7 +82,13 @@ namespace Serilog.Sinks.AwsCloudWatch
                 throw new System.ArgumentException($"{nameof(options.TextFormatter)} is required");
             }
 
+            if (options.EventTransformer == null)
+            {
+                throw new System.ArgumentException($"{nameof(options.EventTransformer)} is required");
+            }
+
             textFormatter = options.TextFormatter;
+            eventTransformer = options.EventTransformer;
         }
 
         /// <summary>
@@ -366,7 +374,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                     var logEvents =
                         new Queue<InputLogEvent>(events
                             .OrderBy(e => e.Timestamp) // log events need to be ordered by timestamp within a single bulk upload to CloudWatch
-                            .Select(e => options.UnicodeAwareTruncate ? TransformEventUnicode(e) : TransformEvent(e))); // transform
+                            .Select(e => eventTransformer.TransformEvent(textFormatter, e))); // transform
 
                     while (logEvents.Count > 0)
                     {
@@ -392,68 +400,5 @@ namespace Serilog.Sinks.AwsCloudWatch
                 syncObject.Release();
             }
         }
-
-        private InputLogEvent TransformEventUnicode(LogEvent @event)
-        {
-            char[] message;
-            using (var writer = new StringWriter())
-            {
-                textFormatter.Format(@event, writer);
-                writer.Flush();
-                var sb = writer.GetStringBuilder();
-                message = new char[sb.Length];
-                sb.CopyTo(0, message, 0, message.Length);
-            }
-
-            var messageLength = message.Length;
-            if (System.Text.Encoding.UTF8.GetByteCount(message) > MaxLogEventSize)
-            {
-                // truncate event message
-                Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
-                messageLength = GetMaximumMessageLength(message);
-            }
-            return new InputLogEvent
-            {
-                Message = new String(message, 0, messageLength),
-                Timestamp = @event.Timestamp.UtcDateTime
-            };
-        }
-       
-
-        private InputLogEvent TransformEvent(LogEvent @event)
-        {
-            string message = null;
-            using (var writer = new StringWriter())
-            {
-                textFormatter.Format(@event, writer);
-                writer.Flush();
-                message = writer.ToString();
-            }
-            var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
-            if (messageLength > MaxLogEventSize)
-            {
-                // truncate event message
-                Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
-                message = message.Substring(0, MaxLogEventSize);
-            }
-            return new InputLogEvent
-            {
-                Message = message,
-                Timestamp = @event.Timestamp.UtcDateTime
-            };
-        }
-
-        private static int GetMaximumMessageLength(char[] message)
-        {
-            var proposedLength = message.Length;
-            int bytesDelta = MaxLogEventSize - System.Text.Encoding.UTF8.GetByteCount(message, 0, proposedLength);
-            while (bytesDelta < 0)
-            {
-                proposedLength += Math.Min(bytesDelta / 4, -1); // Maximum UTF8 char size is 32 bits
-                bytesDelta = MaxLogEventSize - System.Text.Encoding.UTF8.GetByteCount(message, 0, proposedLength);
-            }
-            return proposedLength;
-        }
-
     }
 }
