@@ -10,11 +10,11 @@ This Serilog Sink allows to log to [AWS CloudWatch](https://aws.amazon.com/cloud
 There are two important aspects for configuring this library.  The first is providing the configuration options necessary via the [`ICloudWatchSinkOptions` implementation](#CloudWatchSinkOptions).  And the second is [configuring the AWS Credentials](#Configuring-Credentials).  Both of these are required to log to CloudWatch.
 
 ### CloudWatchSinkOptions
-This library provides single extension method which takes in only a `ICloudWatchSinkOptions` instance and the `IAmazonCloudWatchLogs` instance.
+This library provides an extension method which takes in only a `ICloudWatchSinkOptions` instance and the `IAmazonCloudWatchLogs` instance.
 
 ##### Configuration via Code First
 The preferred approach for configuration is to construct the necessary objects via code and pass them directly to the library extension method.
-  ```cs
+``` cs
   // name of the log group
   var logGroupName = "myLogGroup/" + env.EnvironmentName;
 
@@ -47,7 +47,26 @@ The preferred approach for configuration is to construct the necessary objects v
   Log.Logger = new LoggerConfiguration()
     .WriteTo.AmazonCloudWatch(options, client)
     .CreateLogger();
-  ```
+```
+  
+##### Configuration via Fluent Code First 
+ Call the extension method passing the configuration values that you wish to make use of.
+``` cs
+  // setup AWS CloudWatch client
+  var client = myAppConfigRoot.GetAwsOptions().CreateServiceClient<IAmazonCloudWatchLogs>();
+
+  // Attach the sink to the logger configuration
+  Log.Logger = new LoggerConfiguration()
+    .WriteTo.AmazonCloudWatch(
+		"myLogGroup/" + env.EnvironmentName, 
+		batchSizeLimit = 100,
+		queueSizeLimit = 10000,
+		batchUploadPeriodInSeconds = 15,
+		createLogGroup = true,
+		maxRetryAttempts = 3
+		cloudWatchClient = client)
+    .CreateLogger();
+```
 
 ##### Configuration via config file
 While not recommended, it is still possible to config the library via a configuration file.  There are two libraries which provide these capabilities.
@@ -55,36 +74,66 @@ While not recommended, it is still possible to config the library via a configur
 * [Serilog.Settings.AppSettings](https://github.com/serilog/serilog-settings-appsettings)
 Configuration is done by `App.config` or `Web.config` file.  Create a concrete implementation of the `ICloudWatchSinkOptions` interface, and specify the necessary configuration values.  Then in the configuration file, specify the following:
 
-  ```cs
-  // {Assembly} name is `typeof(YourOptionsClass).AssemblyQualifiedName` and {Namespace} is the class namespace.
+``` xml
+  <!-- {Assembly} name is `typeof(YourOptionsClass).AssemblyQualifiedName` and {Namespace} is the class namespace. -->
   <add key="serilog:write-to:AmazonCloudWatch.options" value="{namespace}.CloudWatchSinkOptions, {assembly}, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
-  ```
+```
 
 * [Serilog.Settings.Configuration](https://github.com/serilog/serilog-settings-configuration)
 Configuration is done by an `appsettings.json` file (or optional specific override.  Create a concrete implementation of the `ICloudWatchSinkOptions` interface, and specify the necessary configuration values.  Then in the configuration file, specify the following:
 
-  ```cs
+``` json
   // {Assembly} name is `typeof(YourOptionsClass).AssemblyQualifiedName` and {Namespace} is the class namespace.
   {
     "Args": {
       "options": "{namespace}.CloudWatchSinkOptions, {assembly}"
     }
   }
-  ```
+```
+  
+  Alternatively you may configure the library without creating a concrete instance of the `ICloudWatchSinkOptions` interface however this will cause the AWS Service client to follow the credential rules in the [official AWS SDK documentation](https://docs.aws.amazon.com/sdk-for-net/v3/developer-guide/net-dg-config-creds.html). You may configure any of the passed values in the Extension method. 
+  
+``` json
+  {
+    "Serilog": {
+        "Using": [ "Serilog.Sinks.AwsCloudWatch" ],
+        "MinimumLevel": "Verbose",
+        "WriteTo": [            
+            {
+                "Name": "AmazonCloudWatch",
+                "Args": {
+                    "logGroup": "your-app",
+                    "logStreamPrefix": "environment/component",
+                    "restrictedToMinimumLevel": "Verbose"
+                }
+            }
+        ]
+    }
+  }
+```
+
+or using XML:
+
+``` xml
+  <add key="serilog:using:AwsCloudWatch" value="Serilog.Sinks.AwsCloudWatch" />
+  <add key="serilog:write-to:AmazonCloudWatch.logGroup" value="your-app" />
+  <add key="serilog:write-to:AmazonCloudWatch.logStreamPrefix" value="environment/component" />
+  <add key="serilog:write-to:AmazonCloudWatch.restrictedToMinimumLevel" value="Verbose" />
+```
 
 ## Configuring Credentials
-AmazonCloudWatchLogsClient from the AWS SDK requires AWS credentials.  To correctly associate credentials with the library, please refer to [The Official AWS Reccomendation on C#](https://docs.aws.amazon.com/sdk-for-net/v3/developer-guide/net-dg-config-creds.html) for credentials management.  To reiterate here:
+AmazonCloudWatchLogsClient from the AWS SDK requires AWS credentials.  To correctly associate credentials with the library, please refer to [The Official AWS Recommendation on C#](https://docs.aws.amazon.com/sdk-for-net/v3/developer-guide/net-dg-config-creds.html) for credentials management.  To reiterate here:
 * Preferred => Use IAM Profile set on your instance, machine, lambda function.
 * Create a credentials profile with your AWS credentials.
 * Use Environment Variables
 * Manually construct the credentials via:
-  ```csharp
+``` cs
   var options = new CredentialProfileOptions { AccessKey = "access_key", SecretKey = "secret_key" };
   var profile = new Amazon.Runtime.CredentialManagement.CredentialProfile("basic_profile", options);
   profile.Region = GetBySystemName("eu-west-1"); // OR RegionEndpoint.EUWest1
   var netSDKFile = new NetSDKCredentialsFile();
   netSDKFile.RegisterProfile(profile);
-  ```
+```
 
 ## Troubleshooting
 * `Cannot find region in config` or `Cannot find credentials in config`
@@ -93,15 +142,15 @@ AWS configuration is not complete.  Refer to the [Configuring Credentials](#Conf
 * Errors related to the setup of the Sink (for example, invalid AWS credentials), or problems during sending the data are logged to [Serilog's SelfLog](https://github.com/serilog/serilog/wiki/Debugging-and-Diagnostics).
 Short version, enable it with something like the following command:
 
-  ```cs
+``` cs
   Serilog.Debugging.SelfLog.Enable(Console.Error);
-  ```
+```
 
 ## Contribution
 
 We value your input as part of direct feedback to us, by filing issues, or preferably by directly contributing improvements:
 
 1. Fork this repository
-1. Create a branch
-1. Contribute
-1. Pull request
+2. Create a branch
+3. Contribute
+4. Pull request
