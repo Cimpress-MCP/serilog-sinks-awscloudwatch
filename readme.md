@@ -151,6 +151,6 @@ Short version, enable it with something like the following command:
 We value your input as part of direct feedback to us, by filing issues, or preferably by directly contributing improvements:
 
 1. Fork this repository
-2. Create a branch
-3. Contribute
-4. Pull request
+1. Create a branch
+1. Contribute
+1. Pull request
