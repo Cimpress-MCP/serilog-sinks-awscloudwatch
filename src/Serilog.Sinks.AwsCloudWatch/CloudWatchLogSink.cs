@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -376,12 +377,13 @@ namespace Serilog.Sinks.AwsCloudWatch
                                         writer.Flush();
                                         message = writer.ToString();
                                     }
-                                    var messageLength = System.Text.Encoding.UTF8.GetByteCount(message);
+                                    var messageLength = Encoding.UTF8.GetByteCount(message);
                                     if (messageLength > MaxLogEventSize)
                                     {
                                         // truncate event message
                                         Debugging.SelfLog.WriteLine("Truncating log event with length of {0}", messageLength);
-                                        message = message.Substring(0, MaxLogEventSize);
+                                        var buffer = Encoding.UTF8.GetBytes(message);
+                                        message = Encoding.UTF8.GetString(buffer, 0, MaxLogEventSize);
                                     }
                                     return new InputLogEvent
                                     {
