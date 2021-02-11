@@ -5,6 +5,8 @@
     <AssemblyName>Serilog.Sinks.AwsCloudWatch.Tests</AssemblyName>
     <PackageId>Serilog.Sinks.AwsCloudWatch.Tests</PackageId>
     <IsPackable>false</IsPackable>
+    <AssemblyOriginatorKeyFile>..\..\strongNamePrivateKey.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>True</SignAssembly>
   </PropertyGroup>
 
   <ItemGroup>
