@@ -53,7 +53,7 @@ The preferred approach for configuration is to construct the necessary objects v
  Call the extension method passing the configuration values that you wish to make use of.
 ``` cs
   // setup AWS CloudWatch client
-  var client = myAppConfigRoot.GetAwsOptions().CreateServiceClient<IAmazonCloudWatchLogs>();
+  var client = myAppConfigRoot.GetAWSOptions().CreateServiceClient<IAmazonCloudWatchLogs>();
 
   // Attach the sink to the logger configuration
   Log.Logger = new LoggerConfiguration()
