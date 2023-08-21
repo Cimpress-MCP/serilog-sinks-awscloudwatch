@@ -58,6 +58,7 @@ namespace Serilog.Sinks.AwsCloudWatch
 
         private readonly SemaphoreSlim syncObject = new SemaphoreSlim(1);
 
+#pragma warning disable CS0618
         /// <summary>
         /// Initializes a new instance of the <see cref="CloudWatchLogSink"/> class.
         /// </summary>
@@ -83,6 +84,7 @@ namespace Serilog.Sinks.AwsCloudWatch
 
             textFormatter = options.TextFormatter;
         }
+#pragma warning restore CS0618
 
         /// <summary>
         /// Ensures the component is initialized.
@@ -107,7 +109,6 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <summary>
         /// Creates the log group.
         /// </summary>
-        /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task CreateLogGroupAsync()
         {
             if (options.CreateLogGroup)
@@ -153,7 +154,6 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <summary>
         /// Creates the log stream if needed.
         /// </summary>
-        /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task CreateLogStreamAsync()
         {
             // see if the log stream already exists
@@ -178,7 +178,6 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <summary>
         /// Updates the log stream sequence token.
         /// </summary>
-        /// <exception cref="Serilog.Sinks.AwsCloudWatch.AwsCloudWatchSinkException"></exception>
         private async Task UpdateLogStreamSequenceTokenAsync()
         {
             var logStream = await GetLogStreamAsync();

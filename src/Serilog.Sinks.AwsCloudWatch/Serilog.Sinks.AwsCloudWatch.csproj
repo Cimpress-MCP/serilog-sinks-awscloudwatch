@@ -17,13 +17,14 @@
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
     <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+    <NoWarn>CS1591</NoWarn>
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <AssemblyOriginatorKeyFile>..\..\strongNamePrivateKey.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>True</SignAssembly>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.CloudWatchLogs" Version="3.*" />
-    <PackageReference Include="Serilog" Version="2.*" />
-    <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="2.*" />
+    <PackageReference Include="AWSSDK.CloudWatchLogs" Version="*" />
+    <PackageReference Include="Serilog" Version="*" />
+    <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="*" />
   </ItemGroup>
 </Project>
