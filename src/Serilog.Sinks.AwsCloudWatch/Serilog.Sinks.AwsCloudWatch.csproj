@@ -3,14 +3,15 @@
     <Description>A Serilog sink that logs to AWS CloudWatch</Description>
     <AssemblyTitle>AWS Cloud Watch Serilog Sink</AssemblyTitle>
     <Version>0.0.1</Version>
-    <Authors>Markus Thurner</Authors>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <Authors>thoean;wparad</Authors>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <AssemblyName>Serilog.Sinks.AwsCloudWatch</AssemblyName>
     <PackageId>Serilog.Sinks.AwsCloudWatch</PackageId>
     <PackageTags>serilog;logging;dnx;coreclr;AWS;CloudWatch</PackageTags>
     <PackageIconUrl>http://serilog.net/images/serilog-sink-nuget.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/Cimpress-MCP/serilog-sinks-awscloudwatch</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
     <GenerateAssemblyDescriptionAttribute>false</GenerateAssemblyDescriptionAttribute>

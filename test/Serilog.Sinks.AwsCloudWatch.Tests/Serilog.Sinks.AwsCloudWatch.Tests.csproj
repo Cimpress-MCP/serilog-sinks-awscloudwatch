@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
+    <TargetFrameworks>net6.0</TargetFrameworks>
     <AssemblyName>Serilog.Sinks.AwsCloudWatch.Tests</AssemblyName>
     <PackageId>Serilog.Sinks.AwsCloudWatch.Tests</PackageId>
     <IsPackable>false</IsPackable>

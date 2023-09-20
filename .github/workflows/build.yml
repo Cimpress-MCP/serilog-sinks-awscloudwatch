@@ -1,0 +1,37 @@
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: 6.0.402
+
+    - name: Install packages
+      run: dotnet restore
+    - name: Run build
+      run: dotnet build
+    - name: Test
+      run: dotnet test -c Release || exit 1
+
+    - name: Deploy
+      if: github.repository_owner == 'Cimpress-MCP' && github.event_name == 'push'
+      env:
+        NUGET_KEY: ${{ secrets.NUGET_KEY }}
+      run: |
+        buildNumber="4.1.${GITHUB_RUN_NUMBER}"
+        sed "s/0.0.1/${buildNumber}/g" src/Serilog.Sinks.AwsCloudWatch/*.csproj -i
+        dotnet pack -c Release -o artifacts || exit 1
+        dotnet nuget push artifacts/Serilog.Sinks.AwsCloudWatch.${buildNumber}.nupkg -s "https://api.nuget.org/v3/index.json" -k "$NUGET_KEY"
+        git tag $buildNumber
+        git push origin $buildNumber
