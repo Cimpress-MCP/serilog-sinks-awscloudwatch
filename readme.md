@@ -82,7 +82,7 @@ Configuration is done by `App.config` or `Web.config` file.  Create a concrete i
 * [Serilog.Settings.Configuration](https://github.com/serilog/serilog-settings-configuration)
 Configuration is done by an `appsettings.json` file (or optional specific override.  Create a concrete implementation of the `ICloudWatchSinkOptions` interface, and specify the necessary configuration values.  Then in the configuration file, specify the following:
 
-``` json
+``` js
   // {Assembly} name is `typeof(YourOptionsClass).AssemblyQualifiedName` and {Namespace} is the class namespace.
   {
     "Args": {
