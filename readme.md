@@ -1,3 +1,5 @@
+This is a test change
+
 # Serilog Sink for AWS CloudWatch
 
 This Serilog Sink allows to log to [AWS CloudWatch](https://aws.amazon.com/cloudwatch/). It supports .NET Core (.NET Framework 4.5 is deprecated and no longer supported)
