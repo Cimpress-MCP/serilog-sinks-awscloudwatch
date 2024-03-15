@@ -29,7 +29,7 @@ jobs:
       env:
         NUGET_KEY: ${{ secrets.NUGET_KEY }}
       run: |
-        buildNumber="4.1.${GITHUB_RUN_NUMBER}"
+        buildNumber="4.2.${GITHUB_RUN_NUMBER}"
         sed "s/0.0.1/${buildNumber}/g" src/Serilog.Sinks.AwsCloudWatch/*.csproj -i
         dotnet pack -c Release -o artifacts || exit 1
         dotnet nuget push artifacts/Serilog.Sinks.AwsCloudWatch.${buildNumber}.nupkg -s "https://api.nuget.org/v3/index.json" -k "$NUGET_KEY"
