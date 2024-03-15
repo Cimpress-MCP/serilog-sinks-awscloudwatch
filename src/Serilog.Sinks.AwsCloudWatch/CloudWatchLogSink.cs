@@ -419,21 +419,25 @@ namespace Serilog.Sinks.AwsCloudWatch
             }
         }
 
+        /// <inheritdoc/>
         Task IBatchedLogEventSink.OnEmptyBatchAsync()
         {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
 
+        /// <inheritdoc/>
         public void Emit(LogEvent logEvent)
         {
             batchingSink.Emit(logEvent);
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             batchingSink.Dispose();
         }
 
+        /// <inheritdoc/>
         public ValueTask DisposeAsync()
         {
             return batchingSink.DisposeAsync();
