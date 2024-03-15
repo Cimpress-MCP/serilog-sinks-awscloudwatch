@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Serilog.Core;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -17,7 +18,7 @@ namespace Serilog.Sinks.AwsCloudWatch
     /// A Serilog log sink that publishes to AWS CloudWatch Logs
     /// </summary>
     /// <seealso cref="Serilog.Sinks.PeriodicBatching.PeriodicBatchingSink" />
-    public class CloudWatchLogSink : PeriodicBatchingSink
+    public class CloudWatchLogSink : ILogEventSink, IBatchedLogEventSink, IDisposable, IAsyncDisposable
     {
         /// <summary>
         /// The maximum log event size = 256 KB - 26 B
@@ -55,6 +56,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         private string logStreamName;
         private string nextSequenceToken;
         private readonly ITextFormatter textFormatter;
+        private readonly PeriodicBatchingSink batchingSink;
 
         private readonly SemaphoreSlim syncObject = new SemaphoreSlim(1);
 
@@ -64,7 +66,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// </summary>
         /// <param name="cloudWatchClient">The cloud watch client.</param>
         /// <param name="options">The options.</param>
-        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options) : base(options.BatchSizeLimit, options.Period, options.QueueSizeLimit)
+        public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options)
         {
             if (string.IsNullOrEmpty(options?.LogGroupName))
             {
@@ -79,10 +81,11 @@ namespace Serilog.Sinks.AwsCloudWatch
 
             if (options.TextFormatter == null)
             {
-                throw new System.ArgumentException($"{nameof(options.TextFormatter)} is required");
+                throw new ArgumentException($"{nameof(options.TextFormatter)} is required");
             }
 
             textFormatter = options.TextFormatter;
+            batchingSink = new(this, new() { BatchSizeLimit = options.BatchSizeLimit, Period = options.Period, QueueLimit = options.QueueSizeLimit });
         }
 #pragma warning restore CS0618
 
@@ -340,7 +343,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// Emit a batch of log events, running asynchronously.
         /// </summary>
         /// <param name="events">The events to emit.</param>
-        protected override async Task EmitBatchAsync(IEnumerable<LogEvent> events)
+        async Task IBatchedLogEventSink.EmitBatchAsync(IEnumerable<LogEvent> events)
         {
             try
             {
@@ -414,6 +417,30 @@ namespace Serilog.Sinks.AwsCloudWatch
             {
                 syncObject.Release();
             }
+        }
+
+        /// <inheritdoc/>
+        Task IBatchedLogEventSink.OnEmptyBatchAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public void Emit(LogEvent logEvent)
+        {
+            batchingSink.Emit(logEvent);
+        }
+
+        /// <inheritdoc/>
+        public void Dispose()
+        {
+            batchingSink.Dispose();
+        }
+
+        /// <inheritdoc/>
+        public ValueTask DisposeAsync()
+        {
+            return batchingSink.DisposeAsync();
         }
     }
 }

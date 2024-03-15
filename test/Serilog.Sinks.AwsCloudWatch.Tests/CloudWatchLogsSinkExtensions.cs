@@ -1,9 +1,7 @@
 ﻿using Serilog.Events;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
+using Serilog.Sinks.PeriodicBatching;
 
 namespace Serilog.Sinks.AwsCloudWatch.Tests
 {
@@ -17,8 +15,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
         /// <returns>The task to wait on.</returns>
         public static Task EmitBatchAsync(this CloudWatchLogSink sink, IEnumerable<LogEvent> events)
         {
-            var emitMethod = sink.GetType().GetMethod("EmitBatchAsync", BindingFlags.NonPublic | BindingFlags.Instance);
-            return emitMethod.Invoke(sink, new object[] { events }) as Task;
+            return ((IBatchedLogEventSink)sink).EmitBatchAsync(events);
         }
     }
 }
