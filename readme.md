@@ -4,7 +4,7 @@ This Serilog Sink allows to log to [AWS CloudWatch](https://aws.amazon.com/cloud
 
 ## Version and build status
 
-[![NuGet version](https://badge.fury.io/nu/Serilog.Sinks.AwsCloudWatch.svg)](https://badge.fury.io/nu/Serilog.Sinks.AwsCloudWatch) ![Build status](https://ci.appveyor.com/api/projects/status/github/Cimpress-MCP/serilog-sinks-awscloudwatch?branch=master&svg=true)
+[![NuGet version](https://badge.fury.io/nu/Serilog.Sinks.AwsCloudWatch.svg)](https://badge.fury.io/nu/Serilog.Sinks.AwsCloudWatch)
 
 ## Usage
 There are two important aspects for configuring this library.  The first is providing the configuration options necessary via the [`ICloudWatchSinkOptions` implementation](#CloudWatchSinkOptions).  And the second is [configuring the AWS Credentials](#Configuring-Credentials).  Both of these are required to log to CloudWatch.
