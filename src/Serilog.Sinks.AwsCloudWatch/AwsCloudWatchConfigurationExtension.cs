@@ -7,6 +7,7 @@ using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Formatting.Json;
 using Serilog.Sinks.AwsCloudWatch.LogStreamNameProvider;
+using Serilog.Sinks.PeriodicBatching;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
@@ -37,9 +38,16 @@ namespace Serilog.Sinks.AwsCloudWatch
             {
                 throw new ArgumentNullException(nameof(cloudWatchClient));
             }
+            
+            // the batched sink is 
+            var batchedSink = new PeriodicBatchingSinkImplementationCallback(cloudWatchClient, options);
 
-            // create the sink
-            var sink = new CloudWatchLogSink(cloudWatchClient, options);
+            var sink = new PeriodicBatchingSink(batchedSink, new()
+            {
+	            BatchSizeLimit = options.BatchSizeLimit, 
+	            Period = options.Period, 
+	            QueueLimit = options.QueueSizeLimit
+            });
 
             // register the sink
             return loggerConfiguration.Sink(sink, options.MinimumLogEventLevel);
@@ -180,10 +188,8 @@ namespace Serilog.Sinks.AwsCloudWatch
 			}
 
 			var client = cloudWatchClient ?? new AmazonCloudWatchLogsClient();
-			
-				// Create and register the sink
-			var sink = new CloudWatchLogSink(client, options);
-			return loggerConfiguration.Sink(sink, options.MinimumLogEventLevel);
+
+			return AmazonCloudWatch(loggerConfiguration, options, client);
 		}
     }
 }
