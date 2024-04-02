@@ -51,7 +51,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         /// <param name="options">The options.</param>
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options)
         {
-            var batchedSink = new CloudWatchBatchedSink(cloudWatchClient, options);
+            var batchedSink = new PeriodicBatchingSinkImplementationCallback(cloudWatchClient, options);
             batchingSink = new(batchedSink, new() { BatchSizeLimit = options.BatchSizeLimit, Period = options.Period, QueueLimit = options.QueueSizeLimit });
         }
         
