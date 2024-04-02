@@ -13,7 +13,7 @@ using Serilog.Sinks.PeriodicBatching;
 
 namespace Serilog.Sinks.AwsCloudWatch;
 
-class CloudWatchLogsBatchedSink: IBatchedLogEventSink
+class CloudWatchBatchedSink: IBatchedLogEventSink
 {
     private readonly IAmazonCloudWatchLogs cloudWatchClient;
     private readonly ICloudWatchSinkOptions options;
@@ -24,7 +24,7 @@ class CloudWatchLogsBatchedSink: IBatchedLogEventSink
 
     private readonly SemaphoreSlim syncObject = new SemaphoreSlim(1);
 
-    public CloudWatchLogsBatchedSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options)
+    public CloudWatchBatchedSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options)
     {
         if (string.IsNullOrEmpty(options?.LogGroupName))
         {
