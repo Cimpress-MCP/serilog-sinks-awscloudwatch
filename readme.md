@@ -9,6 +9,12 @@ This Serilog Sink allows to log to [AWS CloudWatch](https://aws.amazon.com/cloud
 ## Usage
 There are two important aspects for configuring this library.  The first is providing the configuration options necessary via the [`ICloudWatchSinkOptions` implementation](#CloudWatchSinkOptions).  And the second is [configuring the AWS Credentials](#Configuring-Credentials).  Both of these are required to log to CloudWatch.
 
+### Installation
+
+```bash
+dotnet add package Serilog.Sinks.AwsCloudWatch
+```
+
 ### CloudWatchSinkOptions
 This library provides an extension method which takes in only a `ICloudWatchSinkOptions` instance and the `IAmazonCloudWatchLogs` instance.
 
