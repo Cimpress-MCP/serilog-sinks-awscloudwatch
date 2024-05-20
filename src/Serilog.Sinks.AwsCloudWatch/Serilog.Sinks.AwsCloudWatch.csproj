@@ -4,7 +4,7 @@
     <AssemblyTitle>AWS Cloud Watch Serilog Sink</AssemblyTitle>
     <Version>0.0.1</Version>
     <Authors>thoean;wparad</Authors>
-    <TargetFrameworks>net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
     <AssemblyName>Serilog.Sinks.AwsCloudWatch</AssemblyName>
     <PackageId>Serilog.Sinks.AwsCloudWatch</PackageId>
     <PackageTags>serilog;logging;dnx;coreclr;AWS;CloudWatch</PackageTags>

@@ -10,7 +10,10 @@ namespace Serilog.Sinks.AwsCloudWatch
     /// <summary>
     /// A Serilog log sink that publishes to AWS CloudWatch Logs
     /// </summary>
-    public class CloudWatchLogSink : ILogEventSink, IDisposable, IAsyncDisposable
+    public class CloudWatchLogSink : ILogEventSink, IDisposable
+#if NET6_0_OR_GREATER
+        , IAsyncDisposable
+#endif
     {
         private readonly PeriodicBatchingSink batchingSink;
 
@@ -52,7 +55,7 @@ namespace Serilog.Sinks.AwsCloudWatch
         public CloudWatchLogSink(IAmazonCloudWatchLogs cloudWatchClient, ICloudWatchSinkOptions options)
         {
             var batchedSink = new PeriodicBatchingSinkImplementationCallback(cloudWatchClient, options);
-            batchingSink = new(batchedSink, new() { BatchSizeLimit = options.BatchSizeLimit, Period = options.Period, QueueLimit = options.QueueSizeLimit });
+            batchingSink = new PeriodicBatchingSink(batchedSink, new PeriodicBatchingSinkOptions() { BatchSizeLimit = options.BatchSizeLimit, Period = options.Period, QueueLimit = options.QueueSizeLimit });
         }
         
         /// <inheritdoc/>
@@ -67,10 +70,12 @@ namespace Serilog.Sinks.AwsCloudWatch
             batchingSink.Dispose();
         }
 
+#if NET6_0_OR_GREATER
         /// <inheritdoc/>
         public ValueTask DisposeAsync()
         {
             return batchingSink.DisposeAsync();
         }
+#endif
     }
 }

@@ -42,7 +42,7 @@ namespace Serilog.Sinks.AwsCloudWatch
             // the batched sink is 
             var batchedSink = new PeriodicBatchingSinkImplementationCallback(cloudWatchClient, options);
 
-            var sink = new PeriodicBatchingSink(batchedSink, new()
+            var sink = new PeriodicBatchingSink(batchedSink, new PeriodicBatchingSinkOptions()
             {
 	            BatchSizeLimit = options.BatchSizeLimit, 
 	            Period = options.Period, 
