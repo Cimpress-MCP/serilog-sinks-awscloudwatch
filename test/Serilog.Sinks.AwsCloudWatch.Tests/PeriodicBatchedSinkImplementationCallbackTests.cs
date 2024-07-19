@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
+using LogEvent = Serilog.Events.LogEvent;
 
 namespace Serilog.Sinks.AwsCloudWatch.Tests
 {

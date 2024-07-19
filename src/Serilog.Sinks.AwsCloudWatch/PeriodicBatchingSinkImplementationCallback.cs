@@ -10,6 +10,7 @@ using Amazon.CloudWatchLogs.Model;
 using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Sinks.PeriodicBatching;
+using LogEvent = Serilog.Events.LogEvent;
 
 namespace Serilog.Sinks.AwsCloudWatch
 {
