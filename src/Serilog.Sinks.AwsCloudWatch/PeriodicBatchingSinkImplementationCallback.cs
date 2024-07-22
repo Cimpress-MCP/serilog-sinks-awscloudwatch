@@ -7,7 +7,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Amazon.CloudWatchLogs;
 using Amazon.CloudWatchLogs.Model;
-using Serilog.Events;
 using Serilog.Formatting;
 using Serilog.Sinks.PeriodicBatching;
 using LogEvent = Serilog.Events.LogEvent;
@@ -20,7 +19,6 @@ namespace Serilog.Sinks.AwsCloudWatch
         private readonly ICloudWatchSinkOptions options;
         private bool hasInit;
         private string logStreamName;
-        private string nextSequenceToken;
         private readonly ITextFormatter textFormatter;
 
         private readonly SemaphoreSlim syncObject = new SemaphoreSlim(1);
@@ -108,7 +106,6 @@ namespace Serilog.Sinks.AwsCloudWatch
         private void UpdateLogStreamName()
         {
             logStreamName = options.LogStreamNameProvider.GetLogStreamName();
-            nextSequenceToken = null; // always reset on a new stream
         }
 
         /// <summary>
@@ -129,19 +126,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                 };
                 var createLogStreamResponse = await cloudWatchClient.CreateLogStreamAsync(createLogStreamRequest);
             }
-            else
-            {
-                nextSequenceToken = logStream.UploadSequenceToken;
-            }
-        }
-
-        /// <summary>
-        /// Updates the log stream sequence token.
-        /// </summary>
-        private async Task UpdateLogStreamSequenceTokenAsync()
-        {
-            var logStream = await GetLogStreamAsync();
-            nextSequenceToken = logStream?.UploadSequenceToken;
         }
 
         /// <summary>
@@ -226,15 +210,11 @@ namespace Serilog.Sinks.AwsCloudWatch
                     {
                         LogGroupName = options.LogGroupName,
                         LogStreamName = logStreamName,
-                        SequenceToken = nextSequenceToken,
                         LogEvents = batch
                     };
 
                     // actually upload the event to CloudWatch
                     var putLogEventsResponse = await cloudWatchClient.PutLogEventsAsync(putLogEventsRequest);
-
-                    // remember the next sequence token, which is required
-                    nextSequenceToken = putLogEventsResponse.NextSequenceToken;
 
                     success = true;
                 }
@@ -259,7 +239,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                     Debugging.SelfLog.WriteLine("Data already accepted.  Attempt: {0}  Error: {1}", attemptIndex, e);
                     try
                     {
-                        await UpdateLogStreamSequenceTokenAsync();
+                        await GetLogStreamAsync();
                     }
                     catch (Exception ex)
                     {
@@ -276,7 +256,7 @@ namespace Serilog.Sinks.AwsCloudWatch
                     Debugging.SelfLog.WriteLine("Invalid sequence token.  Attempt: {0}  Error: {1}", attemptIndex, e);
                     try
                     {
-                        await UpdateLogStreamSequenceTokenAsync();
+                        await GetLogStreamAsync();
                     }
                     catch (Exception ex)
                     {

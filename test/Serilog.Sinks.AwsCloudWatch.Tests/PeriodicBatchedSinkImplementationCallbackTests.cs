@@ -379,20 +379,12 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
                 Assert.Equal(events.Length / putLogEventsCalls.Count, request.LogEvents.Count);
+                Assert.Null(request.SequenceToken);
 
                 // make sure the events are ordered
                 for (var index = 1; index < call.Request.LogEvents.Count; index++)
                 {
                     Assert.True(call.Request.LogEvents.ElementAt(index).Timestamp >= call.Request.LogEvents.ElementAt(index - 1).Timestamp);
-                }
-
-                if (i == 0) // first call
-                {
-                    Assert.Null(request.SequenceToken);
-                }
-                else
-                {
-                    Assert.NotNull(request.SequenceToken);
                 }
             }
 
@@ -450,15 +442,14 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 var request = call.Request;
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
+                Assert.Null(request.SequenceToken);
 
                 if (i == 0) // first call
                 {
-                    Assert.Null(request.SequenceToken);
                     Assert.Equal(CloudWatchLogSink.MaxLogEventBatchCount, request.LogEvents.Count);
                 }
                 else
                 {
-                    Assert.NotNull(request.SequenceToken);
                     Assert.Single(request.LogEvents);
                 }
             }
@@ -517,15 +508,14 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 var request = call.Request;
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
+                Assert.Null(request.SequenceToken);
 
                 if (i == 0) // first call
                 {
-                    Assert.Null(request.SequenceToken);
                     Assert.Equal(203, request.LogEvents.Count); // expect 203 of the 256 messages in the first batch
                 }
                 else
                 {
-                    Assert.NotNull(request.SequenceToken);
                     Assert.Equal(53, request.LogEvents.Count); // expect 53 of the 256 messages in the second batch
                 }
             }
