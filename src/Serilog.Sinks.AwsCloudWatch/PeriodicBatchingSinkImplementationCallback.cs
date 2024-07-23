@@ -234,40 +234,6 @@ namespace Serilog.Sinks.AwsCloudWatch
                     await CreateLogGroupAsync();
                     await CreateLogStreamAsync();
                 }
-                catch (DataAlreadyAcceptedException e)
-                {
-                    Debugging.SelfLog.WriteLine("Data already accepted.  Attempt: {0}  Error: {1}", attemptIndex, e);
-                    try
-                    {
-                        await GetLogStreamAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attemptIndex, ex);
-
-                        // try again with a different log stream
-                        UpdateLogStreamName();
-                        await CreateLogStreamAsync();
-                    }
-                    attemptIndex++;
-                }
-                catch (InvalidSequenceTokenException e)
-                {
-                    Debugging.SelfLog.WriteLine("Invalid sequence token.  Attempt: {0}  Error: {1}", attemptIndex, e);
-                    try
-                    {
-                        await GetLogStreamAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debugging.SelfLog.WriteLine("Unable to update log stream sequence.  Attempt: {0}  Error: {1}", attemptIndex, ex);
-
-                        // try again with a different log stream
-                        UpdateLogStreamName();
-                        await CreateLogStreamAsync();
-                    }
-                    attemptIndex++;
-                }
                 catch (Exception e)
                 {
                     Debugging.SelfLog.WriteLine("Unhandled exception.  Error: {0}", e);

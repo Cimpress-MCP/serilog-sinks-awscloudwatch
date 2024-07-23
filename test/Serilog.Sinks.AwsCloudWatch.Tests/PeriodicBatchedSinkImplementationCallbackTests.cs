@@ -66,7 +66,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
-                    NextSequenceToken = Guid.NewGuid().ToString()
                 });
 
             await sink.EmitBatchAsync(events);
@@ -75,7 +74,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
-            Assert.Null(request.SequenceToken);
             Assert.Equal(10, request.LogEvents.Count);
             for (var i = 0; i < events.Length; i++)
             {
@@ -130,7 +128,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
-                    NextSequenceToken = Guid.NewGuid().ToString()
                 });
 
             await sink.EmitBatchAsync(events);
@@ -139,7 +136,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
-            Assert.Null(request.SequenceToken);
             Assert.Equal(10, request.LogEvents.Count);
             for (var i = 0; i < events.Length; i++)
             {
@@ -181,7 +177,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
-                    NextSequenceToken = Guid.NewGuid().ToString()
                 });
 
             await sink.EmitBatchAsync(events);
@@ -190,7 +185,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
-            Assert.Null(request.SequenceToken);
             Assert.Equal(10, request.LogEvents.Count);
             for (var i = 0; i < events.Length; i++)
             {
@@ -252,7 +246,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
-                    NextSequenceToken = Guid.NewGuid().ToString()
                 });
 
             await sink.EmitBatchAsync(events);
@@ -262,7 +255,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
             Assert.Equal(options.LogStreamNameProvider.GetLogStreamName(), request.LogStreamName);
-            Assert.Null(request.SequenceToken);
             Assert.Equal(10, request.LogEvents.Count);
             for (var i = 0; i < events.Length; i++)
             {
@@ -311,7 +303,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
-                    NextSequenceToken = Guid.NewGuid().ToString()
                 });
 
             await sink.EmitBatchAsync(events);
@@ -320,7 +311,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             var request = putLogEventsCalls.First().Request;
             Assert.Equal(options.LogGroupName, request.LogGroupName);
-            Assert.Null(request.SequenceToken);
             Assert.Single(request.LogEvents);
             Assert.Equal(largeEventMessage.Substring(0, CloudWatchLogSink.MaxLogEventSize), request.LogEvents.First().Message);
 
@@ -365,7 +355,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
-                    NextSequenceToken = Guid.NewGuid().ToString()
                 });
 
             await sink.EmitBatchAsync(events);
@@ -379,7 +368,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
                 Assert.Equal(events.Length / putLogEventsCalls.Count, request.LogEvents.Count);
-                Assert.Null(request.SequenceToken);
 
                 // make sure the events are ordered
                 for (var index = 1; index < call.Request.LogEvents.Count; index++)
@@ -429,7 +417,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
-                    NextSequenceToken = Guid.NewGuid().ToString()
                 });
 
             await sink.EmitBatchAsync(events);
@@ -442,7 +429,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 var request = call.Request;
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
-                Assert.Null(request.SequenceToken);
 
                 if (i == 0) // first call
                 {
@@ -495,7 +481,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 .ReturnsAsync(new PutLogEventsResponse
                 {
                     HttpStatusCode = System.Net.HttpStatusCode.OK,
-                    NextSequenceToken = Guid.NewGuid().ToString()
                 });
 
             await sink.EmitBatchAsync(events);
@@ -508,7 +493,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
                 var request = call.Request;
 
                 Assert.Equal(options.LogGroupName, request.LogGroupName);
-                Assert.Null(request.SequenceToken);
 
                 if (i == 0) // first call
                 {
@@ -610,7 +594,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.SetupSequence(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ServiceUnavailableException("unavailable"))
-                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
+                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             await sink.EmitBatchAsync(events);
 
@@ -654,7 +638,7 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
 
             client.SetupSequence(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new ResourceNotFoundException("no resource"))
-                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
+                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
 
             await sink.EmitBatchAsync(events);
 
@@ -754,159 +738,6 @@ namespace Serilog.Sinks.AwsCloudWatch.Tests
             await sink.EmitBatchAsync(events);
 
             Assert.Single(putLogEventsCalls);
-
-            client.VerifyAll();
-        }
-
-        [Fact(DisplayName = "EmitBatchAsync - Invalid sequence token")]
-        public async Task InvalidSequenceToken()
-        {
-            // expect update of sequence token and successful retry
-
-            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
-            var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
-            textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
-            var sink = new PeriodicBatchingSinkImplementationCallback(client.Object, options);
-            var events = Enumerable.Range(0, 10)
-                .Select(_ => // create 10 events with message length of 12
-                    new LogEvent(
-                        DateTimeOffset.UtcNow,
-                        LogEventLevel.Information,
-                        null,
-                        new MessageTemplateParser().Parse(CreateMessage(12)),
-                        Enumerable.Empty<LogEventProperty>()))
-                .ToArray();
-
-            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextToken = Guid.NewGuid().ToString() });
-
-            List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
-            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<CreateLogStreamRequest, CancellationToken>((createLogStreamRequest, cancellationToken) => createLogStreamRequests.Add(createLogStreamRequest))
-                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.SetupSequence(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new InvalidSequenceTokenException("invalid sequence"))
-                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
-
-            await sink.EmitBatchAsync(events);
-
-            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Once);
-
-            client.VerifyAll();
-        }
-
-        [Fact(DisplayName = "EmitBatchAsync - Invalid sequence token with new log stream")]
-        public async Task InvalidSequenceToken_CannotUpdateSequenceToken()
-        {
-            // expect update of sequence token and success on a new log stream
-
-            var logStreamNameProvider = new Mock<ILogStreamNameProvider>();
-            logStreamNameProvider.SetupSequence(mock => mock.GetLogStreamName())
-                .Returns("a")
-                .Returns("b");
-
-            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
-            var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
-            textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { LogStreamNameProvider = logStreamNameProvider.Object, TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
-            var sink = new PeriodicBatchingSinkImplementationCallback(client.Object, options);
-            var events = Enumerable.Range(0, 10)
-                .Select(_ => // create 10 events with message length of 12
-                    new LogEvent(
-                        DateTimeOffset.UtcNow,
-                        LogEventLevel.Information,
-                        null,
-                        new MessageTemplateParser().Parse(CreateMessage(12)),
-                        Enumerable.Empty<LogEventProperty>()))
-                .ToArray();
-
-            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.SetupSequence(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK })
-                .ThrowsAsync(new Exception("no describe log stream"))
-                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
-            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<CreateLogStreamRequest, CancellationToken>((createLogStreamRequest, cancellationToken) => createLogStreamRequests.Add(createLogStreamRequest))
-                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.Setup(mock => mock.PutLogEventsAsync(It.Is<PutLogEventsRequest>(req => req.LogStreamName == "a"), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new InvalidSequenceTokenException("invalid sequence"));
-
-            client.Setup(mock => mock.PutLogEventsAsync(It.Is<PutLogEventsRequest>(req => req.LogStreamName == "b"), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
-
-            await sink.EmitBatchAsync(events);
-
-            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-
-            Assert.Equal(2, createLogStreamRequests.Count);
-            Assert.NotEqual(createLogStreamRequests.ElementAt(0).LogStreamName, createLogStreamRequests.ElementAt(1).LogStreamName);
-
-            client.VerifyAll();
-        }
-
-        [Fact(DisplayName = "EmitBatchAsync - Data already accepted")]
-        public async Task DataAlreadyAccepted()
-        {
-            // expect update of sequence token and successful retry
-
-            var client = new Mock<IAmazonCloudWatchLogs>(MockBehavior.Strict);
-            var textFormatterMock = new Mock<ITextFormatter>(MockBehavior.Strict);
-            textFormatterMock.Setup(s => s.Format(It.IsAny<LogEvent>(), It.IsAny<TextWriter>())).Callback((LogEvent l, TextWriter t) => l.RenderMessage(t));
-            var options = new CloudWatchSinkOptions { TextFormatter = textFormatterMock.Object, LogGroupName = "Test-Log-Group-Name" };
-            var sink = new PeriodicBatchingSinkImplementationCallback(client.Object, options);
-            var events = Enumerable.Range(0, 10)
-                .Select(_ => // create 10 events with message length of 12
-                    new LogEvent(
-                        DateTimeOffset.UtcNow,
-                        LogEventLevel.Information,
-                        null,
-                        new MessageTemplateParser().Parse(CreateMessage(12)),
-                        Enumerable.Empty<LogEventProperty>()))
-                .ToArray();
-
-            client.Setup(mock => mock.DescribeLogGroupsAsync(It.IsAny<DescribeLogGroupsRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new DescribeLogGroupsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.Setup(mock => mock.CreateLogGroupAsync(It.IsAny<CreateLogGroupRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new CreateLogGroupResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.Setup(mock => mock.DescribeLogStreamsAsync(It.IsAny<DescribeLogStreamsRequest>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new DescribeLogStreamsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextToken = Guid.NewGuid().ToString() });
-
-            List<CreateLogStreamRequest> createLogStreamRequests = new List<CreateLogStreamRequest>();
-            client.Setup(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()))
-                .Callback<CreateLogStreamRequest, CancellationToken>((createLogStreamRequest, cancellationToken) => createLogStreamRequests.Add(createLogStreamRequest))
-                .ReturnsAsync(new CreateLogStreamResponse { HttpStatusCode = System.Net.HttpStatusCode.OK });
-
-            client.SetupSequence(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()))
-                .ThrowsAsync(new DataAlreadyAcceptedException("data already accepted"))
-                .ReturnsAsync(new PutLogEventsResponse { HttpStatusCode = System.Net.HttpStatusCode.OK, NextSequenceToken = Guid.NewGuid().ToString() });
-
-            await sink.EmitBatchAsync(events);
-
-            client.Verify(mock => mock.PutLogEventsAsync(It.IsAny<PutLogEventsRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.DescribeLogStreamsAsync(It.Is<DescribeLogStreamsRequest>(req => req.LogGroupName == options.LogGroupName && req.LogStreamNamePrefix == createLogStreamRequests.First().LogStreamName), It.IsAny<CancellationToken>()), Times.Exactly(2));
-            client.Verify(mock => mock.CreateLogStreamAsync(It.IsAny<CreateLogStreamRequest>(), It.IsAny<CancellationToken>()), Times.Once);
 
             client.VerifyAll();
         }
