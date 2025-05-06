@@ -165,9 +165,9 @@ namespace Serilog.Sinks.AwsCloudWatch
 
                 if (!first.HasValue)
                 {
-                    first = @event.Timestamp;
+                    first = @event.Timestamp.GetValueOrDefault();
                 }
-                else if (@event.Timestamp.Subtract(first.Value) > CloudWatchLogSink.MaxBatchEventSpan) // ensure batch spans no more than 24 hours
+                else if (@event.Timestamp.GetValueOrDefault().Subtract(first.Value) > CloudWatchLogSink.MaxBatchEventSpan) // ensure batch spans no more than 24 hours
                 {
                     break;
                 }

@@ -4,7 +4,7 @@
     <AssemblyTitle>AWS Cloud Watch Serilog Sink</AssemblyTitle>
     <Version>0.0.1</Version>
     <Authors>thoean;wparad</Authors>
-    <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;net6.0;net8.0</TargetFrameworks>
     <AssemblyName>Serilog.Sinks.AwsCloudWatch</AssemblyName>
     <PackageId>Serilog.Sinks.AwsCloudWatch</PackageId>
     <PackageTags>serilog;logging;dnx;coreclr;AWS;CloudWatch</PackageTags>
@@ -28,7 +28,7 @@
     <None Include="../../readme.md" pack="true" PackagePath="." />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AWSSDK.CloudWatchLogs" Version="[3.7.102.27,)" />
+    <PackageReference Include="AWSSDK.CloudWatchLogs" Version="[4.0.1,)" />
     <!-- This has to be here to prevent breaking Serilog.Formatting.Json.JSonFormatter, see https://github.com/Cimpress-MCP/serilog-sinks-awscloudwatch/issues/131 -->
     <PackageReference Include="Serilog" Version="[3.0.0,)" />
     <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="[3.1.0,)" />
