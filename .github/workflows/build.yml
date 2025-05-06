@@ -22,7 +22,7 @@ jobs:
       - name: Run build
         run: dotnet build
       - name: Test
-        run: dotnet test -c Release --no-build || exit 1
+        run: dotnet test -c Release || exit 1
 
       - name: Deploy
         if: github.repository_owner == 'Cimpress-MCP' && github.event_name == 'push'
